@@ -1,0 +1,362 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ==========================================
+// AUTH.JS MODELS
+// ==========================================
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  nickname      String?   @unique
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  role          Role      @default(PARTICIPANT)
+  credits       Int       @default(0)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts              Account[]
+  sessions              Session[]
+  quinielas             Quiniela[]
+  predictions           Prediction[]
+  tournamentPredictions TournamentPrediction[]
+  telegramSubscription  TelegramSubscription?
+  paymentReports        PaymentReport[]
+
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// ==========================================
+// ENUMS
+// ==========================================
+
+enum Role {
+  ADMIN
+  PARTICIPANT
+  BOT
+}
+
+enum MatchPhase {
+  GROUP_STAGE
+  ROUND_OF_32
+  ROUND_OF_16
+  QUARTER_FINALS
+  SEMI_FINALS
+  THIRD_PLACE
+  FINAL
+}
+
+enum MatchStatus {
+  SCHEDULED
+  LIVE
+  FINISHED
+  POSTPONED
+}
+
+enum TournamentPredictionType {
+  CHAMPION
+  RUNNER_UP
+  THIRD_PLACE
+  TOP_SCORER
+  GROUP_WINNER
+  GROUP_RUNNER_UP
+}
+
+enum PaymentStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// ==========================================
+// QUINIELA (supports multiple per user)
+// ==========================================
+
+model Quiniela {
+  id        String   @id @default(cuid())
+  name      String
+  userId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user                  User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  predictions           Prediction[]
+  tournamentPredictions TournamentPrediction[]
+  score                 QuinielaScore?
+
+  @@map("quinielas")
+}
+
+// ==========================================
+// TOURNAMENT DATA
+// ==========================================
+
+model Team {
+  id      String  @id @default(cuid())
+  name    String  @unique
+  code    String  @unique @db.VarChar(3)
+  flag    String?
+  groupId String?
+
+  group Group? @relation(fields: [groupId], references: [id])
+
+  homeMatches           Match[]                @relation("HomeTeam")
+  awayMatches           Match[]                @relation("AwayTeam")
+  tournamentPredictions TournamentPrediction[]
+
+  @@map("teams")
+}
+
+model Group {
+  id   String @id @default(cuid())
+  name String @unique @db.VarChar(1)
+
+  teams   Team[]
+  matches Match[]
+
+  @@map("groups")
+}
+
+model Venue {
+  id      String @id @default(cuid())
+  name    String
+  city    String
+  country String
+
+  matches Match[]
+
+  @@map("venues")
+}
+
+model Match {
+  id          String      @id @default(cuid())
+  matchNumber Int         @unique
+  phase       MatchPhase
+  groupId     String?
+  venueId     String?
+  dateTime    DateTime
+
+  homeTeamId String?
+  awayTeamId String?
+
+  homeScore   Int?
+  awayScore   Int?
+  homePenalty Int?
+  awayPenalty Int?
+
+  status MatchStatus @default(SCHEDULED)
+  locked Boolean     @default(false)
+
+  group    Group? @relation(fields: [groupId], references: [id])
+  venue    Venue? @relation(fields: [venueId], references: [id])
+  homeTeam Team?  @relation("HomeTeam", fields: [homeTeamId], references: [id])
+  awayTeam Team?  @relation("AwayTeam", fields: [awayTeamId], references: [id])
+
+  predictions Prediction[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([phase])
+  @@index([dateTime])
+  @@index([status])
+  @@map("matches")
+}
+
+// ==========================================
+// PREDICTIONS (scoped to quiniela)
+// ==========================================
+
+model Prediction {
+  id         String  @id @default(cuid())
+  userId     String
+  quinielaId String
+  matchId    String
+  homeScore  Int
+  awayScore  Int
+  isWildcard Boolean @default(false)
+  points     Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  quiniela Quiniela @relation(fields: [quinielaId], references: [id], onDelete: Cascade)
+  match    Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
+
+  @@unique([quinielaId, matchId])
+  @@index([matchId])
+  @@index([userId])
+  @@map("predictions")
+}
+
+model TournamentPrediction {
+  id         String                   @id @default(cuid())
+  userId     String
+  quinielaId String
+  type       TournamentPredictionType
+  teamId     String?
+  groupId    String?
+  playerName String?
+  points     Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  quiniela Quiniela @relation(fields: [quinielaId], references: [id], onDelete: Cascade)
+  team     Team?    @relation(fields: [teamId], references: [id])
+
+  @@unique([quinielaId, type, groupId])
+  @@index([type])
+  @@index([userId])
+  @@map("tournament_predictions")
+}
+
+// ==========================================
+// SCORING / LEADERBOARD (per quiniela)
+// ==========================================
+
+model QuinielaScore {
+  id               String @id @default(cuid())
+  quinielaId       String @unique
+  totalPoints      Int    @default(0)
+  exactScores      Int    @default(0)
+  correctResults   Int    @default(0)
+  partialScores    Int    @default(0)
+  groupPoints      Int    @default(0)
+  knockoutPoints   Int    @default(0)
+  tournamentPoints Int    @default(0)
+  wildcardPoints   Int    @default(0)
+  rank             Int?
+
+  quiniela Quiniela @relation(fields: [quinielaId], references: [id], onDelete: Cascade)
+
+  updatedAt DateTime @updatedAt
+
+  @@index([totalPoints(sort: Desc)])
+  @@index([rank])
+  @@map("quiniela_scores")
+}
+
+// ==========================================
+// TOURNAMENT RESULTS (admin-set actuals)
+// ==========================================
+
+model TournamentResult {
+  id         String                   @id @default(cuid())
+  type       TournamentPredictionType
+  teamId     String?
+  groupId    String?
+  playerName String?
+
+  createdAt DateTime @default(now())
+
+  @@unique([type, groupId])
+  @@map("tournament_results")
+}
+
+// ==========================================
+// TELEGRAM
+// ==========================================
+
+model TelegramSubscription {
+  id     String @id @default(cuid())
+  userId String @unique
+  chatId String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@map("telegram_subscriptions")
+}
+
+// ==========================================
+// PAYMENTS / CREDITS
+// ==========================================
+
+model PaymentReport {
+  id            String        @id @default(cuid())
+  userId        String
+  credits       Int
+  amount        Decimal       @db.Decimal(10, 2)
+  method        String
+  reference     String
+  notes         String?
+  proofUrl      String?
+  status        PaymentStatus @default(PENDING)
+  reviewedBy    String?
+  reviewedAt    DateTime?
+  rejectionNote String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+  @@map("payment_reports")
+}
+
+// ==========================================
+// ADMIN LOG
+// ==========================================
+
+model AdminLog {
+  id        String   @id @default(cuid())
+  adminId   String
+  action    String
+  details   String?  @db.Text
+  createdAt DateTime @default(now())
+
+  @@map("admin_logs")
+}
