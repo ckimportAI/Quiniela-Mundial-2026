@@ -8,6 +8,8 @@ import type {
   QuinielaScore,
   TournamentPrediction,
   PaymentReport,
+  SubQuiniela,
+  SubQuinielaMember,
 } from "@/generated/prisma/client";
 
 // Extended types with relations
@@ -53,4 +55,22 @@ export type TournamentPredictionWithTeam = TournamentPrediction & {
 // Payment types
 export type PaymentReportWithUser = PaymentReport & {
   user: Pick<User, "id" | "name" | "nickname" | "email">;
+};
+
+// Sub-Quiniela types
+export type SubQuinielaWithCounts = SubQuiniela & {
+  _count: { members: number };
+  createdBy: Pick<User, "id" | "name" | "nickname" | "image">;
+};
+
+export type SubQuinielaMemberWithDetails = SubQuinielaMember & {
+  user: Pick<User, "id" | "name" | "nickname" | "image">;
+  quiniela: Quiniela & {
+    score: QuinielaScore | null;
+  };
+};
+
+export type SubQuinielaWithMembers = SubQuiniela & {
+  createdBy: Pick<User, "id" | "name" | "nickname" | "image">;
+  members: SubQuinielaMemberWithDetails[];
 };

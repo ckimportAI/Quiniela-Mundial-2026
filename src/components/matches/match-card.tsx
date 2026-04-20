@@ -2,6 +2,7 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { TeamFlag } from "@/components/ui/team-flag";
 import type { MatchWithDetails } from "@/lib/types";
 
 const phaseLabels: Record<string, string> = {
@@ -61,8 +62,8 @@ export function MatchCard({ match, compact = false }: MatchCardProps) {
               <span className={`text-sm font-medium ${!match.homeTeam ? "text-muted-foreground italic" : ""}`}>
                 {match.homeTeam?.name ?? "Por definir"}
               </span>
-              {match.homeTeam?.flag && (
-                <span className="text-lg">{match.homeTeam.flag}</span>
+              {match.homeTeam && (
+                <TeamFlag code={match.homeTeam.code} size="lg" />
               )}
             </div>
           </div>
@@ -83,8 +84,8 @@ export function MatchCard({ match, compact = false }: MatchCardProps) {
           {/* Away Team */}
           <div className="flex-1">
             <div className="flex items-center gap-2">
-              {match.awayTeam?.flag && (
-                <span className="text-lg">{match.awayTeam.flag}</span>
+              {match.awayTeam && (
+                <TeamFlag code={match.awayTeam.code} size="lg" />
               )}
               <span className={`text-sm font-medium ${!match.awayTeam ? "text-muted-foreground italic" : ""}`}>
                 {match.awayTeam?.name ?? "Por definir"}

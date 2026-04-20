@@ -5,6 +5,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { TeamFlag } from "@/components/ui/team-flag";
 import type { GroupWithTeams } from "@/lib/types";
 
 interface GroupCardProps {
@@ -25,7 +26,7 @@ export function GroupCard({ group }: GroupCardProps) {
                 key={team.id}
                 className="flex items-center gap-2 text-sm"
               >
-                <span className="text-lg">{team.flag}</span>
+                <TeamFlag code={team.code} size="md" />
                 <span>{team.name}</span>
                 <span className="text-xs text-muted-foreground ml-auto">
                   {team.code}

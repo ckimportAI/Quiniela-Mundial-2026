@@ -1,28 +1,28 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 export default function OnboardingPage() {
-  const router = useRouter();
   const [nickname, setNickname] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [cedula, setCedula] = useState("");
+  const [phone, setPhone] = useState("");
   const [available, setAvailable] = useState<boolean | null>(null);
   const [checking, setChecking] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
-  // Debounced availability check
+  // Debounced nickname availability check
   const checkAvailability = useCallback(async (value: string) => {
     if (value.length < 3) {
       setAvailable(null);
       return;
     }
 
-    // Validate format
     if (!/^[a-zA-Z0-9_]+$/.test(value)) {
       setAvailable(null);
       setError("Solo letras, numeros y guion bajo");
@@ -54,7 +54,7 @@ export default function OnboardingPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!available || nickname.length < 3) return;
+    if (!available || !isFormValid) return;
 
     setSaving(true);
     setError("");
@@ -62,7 +62,12 @@ export default function OnboardingPage() {
       const res = await fetch("/api/users/nickname", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nickname }),
+        body: JSON.stringify({
+          nickname,
+          name: fullName.trim(),
+          cedula: cedula.trim(),
+          phone: phone.trim(),
+        }),
       });
 
       if (!res.ok) {
@@ -71,18 +76,24 @@ export default function OnboardingPage() {
         return;
       }
 
-      // Redirect to main page - middleware will let them through now
-      router.push("/predicciones");
-      router.refresh();
+      // Hard redirect to home so JWT refreshes with new nickname
+      window.location.href = "/";
     } finally {
       setSaving(false);
     }
   };
 
-  const isValid =
+  const isNicknameValid =
     nickname.length >= 3 &&
     nickname.length <= 20 &&
     /^[a-zA-Z0-9_]+$/.test(nickname);
+
+  const isFormValid =
+    isNicknameValid &&
+    available === true &&
+    fullName.trim().length >= 2 &&
+    cedula.trim().length >= 5 &&
+    phone.trim().length >= 7;
 
   return (
     <div className="flex items-center justify-center min-h-[80vh]">
@@ -90,13 +101,51 @@ export default function OnboardingPage() {
         <CardHeader className="text-center">
           <CardTitle className="text-2xl">Bienvenido a la Quiniela</CardTitle>
           <p className="text-muted-foreground text-sm mt-2">
-            Elige tu pseudonimo. Este sera tu identidad en la quiniela y{" "}
+            Completa tus datos para participar. El pseudonimo{" "}
             <strong>no se puede cambiar despues</strong>.
           </p>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
+            {/* Full Name */}
+            <div className="space-y-1.5">
+              <Label htmlFor="fullName">Nombre completo</Label>
+              <Input
+                id="fullName"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                placeholder="Ej: Carlos Perez"
+                maxLength={100}
+                autoFocus
+              />
+            </div>
+
+            {/* Cedula */}
+            <div className="space-y-1.5">
+              <Label htmlFor="cedula">Cedula de identidad</Label>
+              <Input
+                id="cedula"
+                value={cedula}
+                onChange={(e) => setCedula(e.target.value)}
+                placeholder="Ej: V-12345678"
+                maxLength={20}
+              />
+            </div>
+
+            {/* Phone */}
+            <div className="space-y-1.5">
+              <Label htmlFor="phone">Telefono</Label>
+              <Input
+                id="phone"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="Ej: 0412-1234567"
+                maxLength={20}
+              />
+            </div>
+
+            {/* Nickname */}
+            <div className="space-y-1.5">
               <Label htmlFor="nickname">Pseudonimo</Label>
               <Input
                 id="nickname"
@@ -105,9 +154,8 @@ export default function OnboardingPage() {
                   setNickname(e.target.value.toLowerCase());
                   setError("");
                 }}
-                placeholder="ej: ckpaz27"
+                placeholder="Ej: ckpaz27"
                 maxLength={20}
-                autoFocus
               />
               <div className="min-h-5">
                 {checking && (
@@ -115,9 +163,9 @@ export default function OnboardingPage() {
                     Verificando disponibilidad...
                   </p>
                 )}
-                {!checking && isValid && available === true && (
+                {!checking && isNicknameValid && available === true && (
                   <p className="text-xs text-green-600">
-                    ✓ Disponible
+                    Disponible
                   </p>
                 )}
                 {!checking && error && (
@@ -131,7 +179,7 @@ export default function OnboardingPage() {
               </div>
             </div>
 
-            {isValid && available && (
+            {isFormValid && (
               <div className="rounded-lg bg-muted p-3 text-sm">
                 <p className="text-muted-foreground">
                   Tus quinielas se llamaran:{" "}
@@ -150,7 +198,7 @@ export default function OnboardingPage() {
             <Button
               type="submit"
               className="w-full"
-              disabled={!isValid || !available || saving}
+              disabled={!isFormValid || saving}
             >
               {saving ? "Guardando..." : "Continuar"}
             </Button>

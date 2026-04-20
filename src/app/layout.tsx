@@ -34,7 +34,7 @@ export default function RootLayout({
       >
         <SessionProvider>
           <Navbar />
-          <main className="container py-6">{children}</main>
+          <main className="container mx-auto px-4 py-6">{children}</main>
           <Toaster />
         </SessionProvider>
       </body>

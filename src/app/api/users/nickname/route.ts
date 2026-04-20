@@ -46,11 +46,16 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Set nickname
+  // Set nickname and personal data
   const updated = await prisma.user.update({
     where: { id: session.user.id },
-    data: { nickname: parsed.data.nickname },
-    select: { id: true, nickname: true },
+    data: {
+      nickname: parsed.data.nickname,
+      name: parsed.data.name,
+      cedula: parsed.data.cedula,
+      phone: parsed.data.phone,
+    },
+    select: { id: true, nickname: true, name: true },
   });
 
   return NextResponse.json(updated);

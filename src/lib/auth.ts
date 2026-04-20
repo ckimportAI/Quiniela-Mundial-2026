@@ -4,8 +4,12 @@ import GoogleProvider from "next-auth/providers/google";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { prisma } from "@/lib/prisma";
 
+const adapter = PrismaAdapter(prisma) as NextAuthOptions["adapter"];
+
 export const authOptions: NextAuthOptions = {
-  adapter: PrismaAdapter(prisma) as NextAuthOptions["adapter"],
+  // Only use adapter for OAuth providers (Google)
+  // CredentialsProvider is incompatible with PrismaAdapter in NextAuth v4
+  ...(process.env.NODE_ENV !== "development" ? { adapter } : {}),
   session: {
     strategy: "jwt",
   },
@@ -27,20 +31,25 @@ export const authOptions: NextAuthOptions = {
             },
             async authorize(credentials) {
               if (!credentials?.email) return null;
-              const user = await prisma.user.upsert({
-                where: { email: credentials.email },
-                update: {},
-                create: {
-                  email: credentials.email,
-                  name: credentials.email.split("@")[0],
-                },
-              });
-              return {
-                id: user.id,
-                email: user.email,
-                name: user.name,
-                image: user.image,
-              };
+              try {
+                const user = await prisma.user.upsert({
+                  where: { email: credentials.email },
+                  update: {},
+                  create: {
+                    email: credentials.email,
+                    name: credentials.email.split("@")[0],
+                  },
+                });
+                return {
+                  id: user.id,
+                  email: user.email,
+                  name: user.name,
+                  image: user.image,
+                };
+              } catch (error) {
+                console.error("Dev login error:", error);
+                return null;
+              }
             },
           }),
         ]

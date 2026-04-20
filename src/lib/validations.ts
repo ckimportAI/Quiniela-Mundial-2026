@@ -6,6 +6,9 @@ export const nicknameSchema = z.object({
     .min(3, "Minimo 3 caracteres")
     .max(20, "Maximo 20 caracteres")
     .regex(/^[a-zA-Z0-9_]+$/, "Solo letras, numeros y guion bajo"),
+  name: z.string().min(2, "Minimo 2 caracteres").max(100, "Maximo 100 caracteres"),
+  cedula: z.string().min(5, "Minimo 5 caracteres").max(20, "Maximo 20 caracteres"),
+  phone: z.string().min(7, "Minimo 7 caracteres").max(20, "Maximo 20 caracteres"),
 });
 
 export const paymentReportSchema = z.object({
@@ -57,9 +60,34 @@ export const lockMatchesSchema = z.object({
   before: z.string().datetime().optional(),
 });
 
+export const createSubQuinielaSchema = z.object({
+  name: z
+    .string()
+    .min(3, "Minimo 3 caracteres")
+    .max(50, "Maximo 50 caracteres"),
+  description: z.string().max(200, "Maximo 200 caracteres").optional(),
+  quinielaId: z.string().cuid("Quiniela requerida"),
+});
+
+export const joinSubQuinielaSchema = z.object({
+  inviteCode: z
+    .string()
+    .min(6, "Codigo invalido")
+    .max(8, "Codigo invalido")
+    .transform((v) => v.toUpperCase()),
+  quinielaId: z.string().cuid("Quiniela requerida"),
+});
+
+export const updateMemberQuinielaSchema = z.object({
+  quinielaId: z.string().cuid("Quiniela requerida"),
+});
+
 export type NicknameInput = z.infer<typeof nicknameSchema>;
 export type PaymentReportInput = z.infer<typeof paymentReportSchema>;
 export type ReviewPaymentInput = z.infer<typeof reviewPaymentSchema>;
 export type PredictionInput = z.infer<typeof predictionSchema>;
 export type TournamentPredictionInput = z.infer<typeof tournamentPredictionSchema>;
 export type MatchResultInput = z.infer<typeof matchResultSchema>;
+export type CreateSubQuinielaInput = z.infer<typeof createSubQuinielaSchema>;
+export type JoinSubQuinielaInput = z.infer<typeof joinSubQuinielaSchema>;
+export type UpdateMemberQuinielaInput = z.infer<typeof updateMemberQuinielaSchema>;

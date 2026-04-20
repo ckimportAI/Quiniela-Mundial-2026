@@ -18,6 +18,8 @@ model User {
   email         String    @unique
   emailVerified DateTime?
   image         String?
+  cedula        String?   @db.VarChar(20)
+  phone         String?   @db.VarChar(20)
   role          Role      @default(PARTICIPANT)
   credits       Int       @default(0)
   createdAt     DateTime  @default(now())
@@ -30,6 +32,8 @@ model User {
   tournamentPredictions TournamentPrediction[]
   telegramSubscription  TelegramSubscription?
   paymentReports        PaymentReport[]
+  createdSubQuinielas    SubQuiniela[]
+  subQuinielaMemberships SubQuinielaMember[]
 
   @@map("users")
 }
@@ -116,6 +120,11 @@ enum PaymentStatus {
   REJECTED
 }
 
+enum SubQuinielaMemberRole {
+  ADMIN
+  MEMBER
+}
+
 // ==========================================
 // QUINIELA (supports multiple per user)
 // ==========================================
@@ -127,10 +136,11 @@ model Quiniela {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user                  User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  predictions           Prediction[]
-  tournamentPredictions TournamentPrediction[]
-  score                 QuinielaScore?
+  user                   User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  predictions            Prediction[]
+  tournamentPredictions  TournamentPrediction[]
+  score                  QuinielaScore?
+  subQuinielaMemberships SubQuinielaMember[]
 
   @@map("quinielas")
 }
@@ -345,6 +355,44 @@ model PaymentReport {
   @@index([userId])
   @@index([status])
   @@map("payment_reports")
+}
+
+// ==========================================
+// SUB-QUINIELAS (private friend groups)
+// ==========================================
+
+model SubQuiniela {
+  id          String   @id @default(cuid())
+  name        String   @db.VarChar(50)
+  description String?  @db.VarChar(200)
+  inviteCode  String   @unique @db.VarChar(8)
+  createdById String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  createdBy User                @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  members   SubQuinielaMember[]
+
+  @@index([inviteCode])
+  @@map("sub_quinielas")
+}
+
+model SubQuinielaMember {
+  id            String                @id @default(cuid())
+  subQuinielaId String
+  userId        String
+  quinielaId    String
+  role          SubQuinielaMemberRole @default(MEMBER)
+  joinedAt      DateTime              @default(now())
+
+  subQuiniela SubQuiniela @relation(fields: [subQuinielaId], references: [id], onDelete: Cascade)
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  quiniela    Quiniela    @relation(fields: [quinielaId], references: [id], onDelete: Cascade)
+
+  @@unique([subQuinielaId, userId])
+  @@index([userId])
+  @@index([quinielaId])
+  @@map("sub_quiniela_members")
 }
 
 // ==========================================

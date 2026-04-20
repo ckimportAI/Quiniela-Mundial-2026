@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { TeamFlag } from "@/components/ui/team-flag";
 import type { MatchWithDetails } from "@/lib/types";
 
 interface MatchPredictionCardProps {
@@ -90,48 +91,52 @@ export function MatchPredictionCard({
             : ""
       }
     >
-      <CardContent className="p-4">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-xs text-muted-foreground">
-            #{match.matchNumber} &middot;{" "}
-            {match.group ? `Grupo ${match.group.name}` : match.phase}
-          </span>
-          <div className="flex items-center gap-1">
+      <CardContent className="px-3 py-2.5">
+        {/* Row 1: match info + badges + date */}
+        <div className="flex items-center justify-between mb-1.5">
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs text-muted-foreground">
+              #{match.matchNumber} &middot;{" "}
+              {match.group ? `Grupo ${match.group.name}` : match.phase}
+            </span>
             {isWildcard && (
-              <Badge variant="default" className="bg-yellow-500 text-black">
+              <Badge variant="default" className="bg-yellow-500 text-black text-[10px] px-1.5 py-0">
                 Comodin
               </Badge>
             )}
             {isFinished && prediction?.points != null && (
               <Badge
                 variant={prediction.points > 0 ? "default" : "secondary"}
+                className="text-[10px] px-1.5 py-0"
               >
                 {prediction.points} pts
               </Badge>
             )}
             {isLocked && !isFinished && (
-              <Badge variant="outline">Cerrado</Badge>
+              <Badge variant="outline" className="text-[10px] px-1.5 py-0">Cerrado</Badge>
             )}
           </div>
+          <span className="text-xs text-muted-foreground">
+            {format(new Date(match.dateTime), "d MMM HH:mm", { locale: es })}
+          </span>
         </div>
 
-        {/* Teams & prediction inputs */}
-        <div className="flex items-center gap-2">
+        {/* Row 2: Teams & score inputs */}
+        <div className="flex items-center gap-1.5">
           {/* Home */}
           <div className="flex-1 text-right">
             <div className="flex items-center justify-end gap-1.5">
               <span className="text-sm font-medium truncate">
                 {match.homeTeam?.name ?? "TBD"}
               </span>
-              {match.homeTeam?.flag && (
-                <span className="text-base">{match.homeTeam.flag}</span>
+              {match.homeTeam && (
+                <TeamFlag code={match.homeTeam.code} size="md" />
               )}
             </div>
           </div>
 
           {/* Score inputs */}
-          <div className="flex items-center gap-1 px-1">
+          <div className="flex items-center gap-1 px-0.5">
             <Input
               type="number"
               min={0}
@@ -139,9 +144,9 @@ export function MatchPredictionCard({
               value={homeScore}
               onChange={(e) => setHomeScore(e.target.value)}
               disabled={isLocked || isFinished}
-              className="w-12 h-9 text-center text-sm font-bold p-1 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              className="w-10 h-8 text-center text-sm font-bold p-0.5 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
             />
-            <span className="text-muted-foreground text-sm">-</span>
+            <span className="text-muted-foreground text-xs">-</span>
             <Input
               type="number"
               min={0}
@@ -149,15 +154,15 @@ export function MatchPredictionCard({
               value={awayScore}
               onChange={(e) => setAwayScore(e.target.value)}
               disabled={isLocked || isFinished}
-              className="w-12 h-9 text-center text-sm font-bold p-1 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              className="w-10 h-8 text-center text-sm font-bold p-0.5 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
             />
           </div>
 
           {/* Away */}
           <div className="flex-1">
             <div className="flex items-center gap-1.5">
-              {match.awayTeam?.flag && (
-                <span className="text-base">{match.awayTeam.flag}</span>
+              {match.awayTeam && (
+                <TeamFlag code={match.awayTeam.code} size="md" />
               )}
               <span className="text-sm font-medium truncate">
                 {match.awayTeam?.name ?? "TBD"}
@@ -168,53 +173,42 @@ export function MatchPredictionCard({
 
         {/* Actual result if finished */}
         {isFinished && match.homeScore != null && match.awayScore != null && (
-          <div className="text-center text-xs text-muted-foreground mt-2">
+          <div className="text-center text-xs text-muted-foreground mt-1">
             Resultado: {match.homeScore} - {match.awayScore}
           </div>
         )}
 
-        {/* Footer: date, wildcard toggle, save */}
-        <div className="flex items-center justify-between mt-3">
-          <span className="text-xs text-muted-foreground">
-            {format(new Date(match.dateTime), "EEE d MMM, HH:mm", {
-              locale: es,
-            })}
-          </span>
-
-          <div className="flex items-center gap-2">
-            {!isLocked && !isFinished && (
-              <Button
-                variant={isWildcard ? "default" : "outline"}
-                size="sm"
-                className={
-                  isWildcard
-                    ? "bg-yellow-500 hover:bg-yellow-600 text-black h-7 text-xs"
-                    : "h-7 text-xs"
-                }
-                disabled={!canUseWildcard && !isWildcard}
-                onClick={() => setIsWildcard(!isWildcard)}
-              >
-                {isWildcard ? "Quitar Comodin" : "Comodin"}
-              </Button>
-            )}
-
-            {!isLocked && !isFinished && (
-              <Button
-                size="sm"
-                className="h-7 text-xs"
-                disabled={
-                  saving ||
-                  homeScore === "" ||
-                  awayScore === "" ||
-                  !hasChanges
-                }
-                onClick={handleSave}
-              >
-                {saving ? "..." : saved ? "Guardado" : "Guardar"}
-              </Button>
-            )}
+        {/* Row 3: Wildcard + Save centered */}
+        {!isLocked && !isFinished && (
+          <div className="flex items-center justify-center gap-2 mt-3 pt-2 border-t border-border/40">
+            <Button
+              variant={isWildcard ? "default" : "outline"}
+              size="sm"
+              className={
+                isWildcard
+                  ? "bg-yellow-500 hover:bg-yellow-600 text-black h-7 text-xs"
+                  : "h-7 text-xs"
+              }
+              disabled={!canUseWildcard && !isWildcard}
+              onClick={() => setIsWildcard(!isWildcard)}
+            >
+              {isWildcard ? "Quitar Comodin" : "Comodin"}
+            </Button>
+            <Button
+              size="sm"
+              className="h-7 text-xs"
+              disabled={
+                saving ||
+                homeScore === "" ||
+                awayScore === "" ||
+                !hasChanges
+              }
+              onClick={handleSave}
+            >
+              {saving ? "..." : saved ? "Guardado" : "Guardar"}
+            </Button>
           </div>
-        </div>
+        )}
       </CardContent>
     </Card>
   );
