@@ -106,7 +106,7 @@ export default function Home() {
       icon: Star,
       title: "Gana",
       description: "Acumula puntos extra prediciendo campeon y goleador",
-      detail: "Campeon: 20 pts | Subcampeon: 10 pts | Goleador: 5 pts",
+      detail: "Campeon: 20 pts | Subcampeon: 10 pts | Goleador: 10 pts",
     },
   ];
 

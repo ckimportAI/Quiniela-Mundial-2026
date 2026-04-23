@@ -15,7 +15,7 @@ export const PHASE_MULTIPLIERS: Record<MatchPhase, number> = {
   ROUND_OF_16: 1.5,
   QUARTER_FINALS: 2,
   SEMI_FINALS: 2.5,
-  THIRD_PLACE: 3,
+  THIRD_PLACE: 2,
   FINAL: 3,
 };
 
@@ -24,7 +24,7 @@ export const TOURNAMENT_POINTS = {
   CHAMPION: 20,
   RUNNER_UP: 10,
   THIRD_PLACE: 5,
-  TOP_SCORER: 5,
+  TOP_SCORER: 10,
   GROUP_WINNER: 5,
   GROUP_RUNNER_UP: 3,
 } as const;

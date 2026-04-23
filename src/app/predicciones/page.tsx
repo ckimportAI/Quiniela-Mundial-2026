@@ -56,7 +56,7 @@ export default function PrediccionesPage() {
             <CardContent>
               <p className="text-sm text-muted-foreground mb-3">
                 Predice el campeon (20 pts), subcampeon (10 pts), tercer lugar (5
-                pts) y goleador (5 pts). Disponible hasta que termine la fase de
+                pts) y goleador (10 pts). Disponible hasta que termine la fase de
                 grupos.
               </p>
               <Button asChild>
