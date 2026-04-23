@@ -17,7 +17,7 @@ export const nicknameSchema = z.object({
 });
 
 export const paymentReportSchema = z.object({
-  packageId: z.string().cuid("Paquete requerido").optional(),
+  packageId: z.string().min(20, "Paquete requerido").max(40).optional(),
   credits: z.number().int().min(1).max(50).optional(),
   amount: z.number().positive("El monto debe ser positivo"),
   amountBs: z.number().positive().optional(),
