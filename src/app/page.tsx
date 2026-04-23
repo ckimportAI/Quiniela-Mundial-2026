@@ -7,13 +7,18 @@ import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import { TOURNAMENT_START_DATE } from "@/lib/constants";
-import { Trophy, Target, Star, Users, BarChart3, Zap, Gift } from "lucide-react";
-import { isOfertaBienvenidaActive, OFERTA_BIENVENIDA_END } from "@/lib/constants";
+import {
+  Users,
+  BarChart3,
+  Zap,
+  UserPlus,
+  ShoppingCart,
+  Trophy,
+  ChevronDown,
+} from "lucide-react";
+import { DeadlineBanner, OfferBanner } from "@/components/home/deadline-banner";
 
 function useCountdown(targetDate: Date) {
   const [timeLeft, setTimeLeft] = useState(getTimeLeft(targetDate));
@@ -90,24 +95,27 @@ export default function Home() {
     );
   }
 
-  const features = [
+  const steps = [
     {
-      icon: Target,
-      title: "Predice",
-      description: "Ingresa tus predicciones para cada partido del Mundial",
-      detail: "Resultado exacto: 5 pts | Ganador: 3 pts | Parcial: 1 pt",
+      num: 1,
+      icon: UserPlus,
+      title: "Registrate",
+      description:
+        "Crea tu cuenta con Google en segundos y completa tus datos.",
     },
     {
+      num: 2,
+      icon: ShoppingCart,
+      title: "Compra tu paquete",
+      description:
+        "Elige entre Individual, Amigos o Familia. Paga por Pago Movil, Zelle o Binance.",
+    },
+    {
+      num: 3,
       icon: Trophy,
-      title: "Compite",
-      description: "Sube en la tabla de posiciones con cada acierto",
-      detail: "Usa tus 2 comodines para duplicar puntos en partidos clave",
-    },
-    {
-      icon: Star,
-      title: "Gana",
-      description: "Acumula puntos extra prediciendo campeon y goleador",
-      detail: "Campeon: 20 pts | Subcampeon: 10 pts | Goleador: 10 pts",
+      title: "Predice y gana",
+      description:
+        "Pronostica los 104 partidos del Mundial y sube en el leaderboard para ganar.",
     },
   ];
 
@@ -117,30 +125,38 @@ export default function Home() {
     { icon: BarChart3, value: stats.predictions, label: "Predicciones" },
   ];
 
-  const promoActive = isOfertaBienvenidaActive();
-  const promoEndStr = OFERTA_BIENVENIDA_END.toLocaleDateString("es-VE", {
-    day: "numeric",
-    month: "long",
-  });
+  const faqs = [
+    {
+      q: "Cuanto cuesta participar?",
+      a: "Un Individual cuesta $12 USD. Tenemos paquetes Amigos ($30 por 3 quinielas) y Familia ($40 por 5 quinielas). Pagas en Bs a la tasa Euro BCV del dia.",
+    },
+    {
+      q: "Como se calculan los puntos?",
+      a: "Resultado exacto: 5 pts. Ganador correcto: 3 pts. Un marcador acertado: 1 pt. Los puntos se multiplican en eliminatorias (x1.5 a x3 segun la fase). Ademas tienes 2 comodines por quiniela que duplican los puntos del partido elegido.",
+    },
+    {
+      q: "Como se pagan los premios?",
+      a: "Se paga el 70% del total recaudado como pool. Distribucion: 55% primer lugar, 28% segundo, 17% tercero. Los premios se anuncian en USD pero se pagan siempre en Bolivares a la tasa Euro BCV del dia del pago.",
+    },
+    {
+      q: "Hasta cuando puedo comprar?",
+      a: "Las compras de paquetes cierran el 11 de junio de 2026 a las 5:00 PM hora Venezuela. Las predicciones se bloquean 5 minutos antes de cada partido.",
+    },
+    {
+      q: "Puedo tener varias quinielas?",
+      a: "Si. Cada paquete te da N quinielas independientes, puedes usar estrategias distintas en cada una. Tambien puedes crear grupos privados con amigos.",
+    },
+    {
+      q: "Que pasa si me equivoco con el monto del pago?",
+      a: "Tenemos tolerancia de +-2%. Si pagaste de mas queda como saldo a favor. Si pagaste de menos te pedimos completar la diferencia.",
+    },
+  ];
 
   return (
     <div className="flex flex-col items-center gap-8">
-      {/* Welcome offer banner */}
-      {promoActive && (
-        <Link
-          href="/paquetes"
-          className="w-full rounded-xl bg-gradient-to-r from-yellow-400 via-orange-400 to-pink-500 p-4 text-center text-white shadow hover:shadow-lg transition-shadow"
-        >
-          <div className="flex items-center justify-center gap-2 flex-wrap">
-            <Gift className="h-5 w-5" />
-            <span className="font-bold">OFERTA DE BIENVENIDA</span>
-            <span className="hidden sm:inline">-</span>
-            <span className="text-sm">
-              Quinielas extra GRATIS hasta el {promoEndStr}
-            </span>
-          </div>
-        </Link>
-      )}
+      {/* Contextual banner: welcome offer OR deadline reminder OR tournament */}
+      <OfferBanner />
+      <DeadlineBanner />
 
       {/* Hero Section */}
       <section className="gradient-hero w-full rounded-2xl px-6 py-12 sm:py-16 flex flex-col items-center text-center">
@@ -202,7 +218,8 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Stats Section */}
+      {/* Stats Section - hidden when all values are 0 */}
+      {(stats.users > 0 || stats.quinielas > 0 || stats.predictions > 0) && (
       <section className="w-full max-w-4xl">
         <div className="grid grid-cols-3 gap-3 sm:gap-6">
           {statItems.map((item) => (
@@ -219,26 +236,100 @@ export default function Home() {
           ))}
         </div>
       </section>
+      )}
 
-      {/* Features Section */}
-      <section className="w-full max-w-4xl pb-8">
-        <h2 className="text-2xl sm:text-3xl font-bold text-center mb-8">
+      {/* How it works - 3 steps */}
+      <section className="w-full max-w-4xl">
+        <h2 className="text-2xl sm:text-3xl font-bold text-center mb-2">
           Como funciona
         </h2>
+        <p className="text-center text-muted-foreground mb-8">
+          En 3 pasos simples estas compitiendo por el pozo
+        </p>
         <div className="grid gap-4 md:grid-cols-3">
-          {features.map((feature) => (
-            <Card key={feature.title} className="feature-card">
-              <CardHeader>
-                <feature.icon className="h-8 w-8 mb-2 text-primary" />
-                <CardTitle className="text-lg">{feature.title}</CardTitle>
-                <CardDescription>{feature.description}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  {feature.detail}
-                </p>
-              </CardContent>
-            </Card>
+          {steps.map((step, idx) => (
+            <div key={step.num} className="relative">
+              <Card className="h-full">
+                <CardContent className="p-5 text-center">
+                  <div className="relative mx-auto w-14 h-14 mb-3">
+                    <div className="absolute inset-0 rounded-full bg-primary/10" />
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <step.icon className="h-7 w-7 text-primary" />
+                    </div>
+                    <div className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs font-bold flex items-center justify-center">
+                      {step.num}
+                    </div>
+                  </div>
+                  <h3 className="font-bold text-lg mb-1">{step.title}</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {step.description}
+                  </p>
+                </CardContent>
+              </Card>
+              {idx < steps.length - 1 && (
+                <div className="hidden md:block absolute top-1/2 -right-2 w-4 h-0.5 bg-primary/30 -translate-y-1/2" />
+              )}
+            </div>
+          ))}
+        </div>
+        <div className="text-center mt-6">
+          <Button asChild variant="outline">
+            <Link href="/paquetes">Ver paquetes</Link>
+          </Button>
+        </div>
+      </section>
+
+      {/* Scoring preview */}
+      <section className="w-full max-w-4xl">
+        <Card>
+          <CardContent className="p-6">
+            <h3 className="text-lg font-bold mb-4 text-center">
+              Sistema de Puntuacion
+            </h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-center">
+              <div>
+                <div className="text-2xl font-extrabold text-primary">5</div>
+                <div className="text-xs text-muted-foreground">Exacto</div>
+              </div>
+              <div>
+                <div className="text-2xl font-extrabold text-primary">3</div>
+                <div className="text-xs text-muted-foreground">Ganador</div>
+              </div>
+              <div>
+                <div className="text-2xl font-extrabold text-primary">1</div>
+                <div className="text-xs text-muted-foreground">Parcial</div>
+              </div>
+              <div>
+                <div className="text-2xl font-extrabold text-yellow-500">x2</div>
+                <div className="text-xs text-muted-foreground">Comodin</div>
+              </div>
+            </div>
+            <div className="mt-4 pt-4 border-t text-xs text-muted-foreground text-center">
+              Predicciones de torneo: Campeon 20 pts &middot; Subcampeon 10 pts &middot; Tercero 5 pts &middot; Goleador 10 pts
+            </div>
+          </CardContent>
+        </Card>
+      </section>
+
+      {/* FAQ */}
+      <section className="w-full max-w-4xl pb-8">
+        <h2 className="text-2xl sm:text-3xl font-bold text-center mb-8">
+          Preguntas Frecuentes
+        </h2>
+        <div className="space-y-2">
+          {faqs.map((faq, idx) => (
+            <details
+              key={idx}
+              className="group rounded-lg border bg-card px-4 py-3 open:shadow-sm"
+            >
+              <summary className="flex items-center justify-between cursor-pointer list-none font-medium text-sm sm:text-base">
+                <span>{faq.q}</span>
+                <ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180" />
+              </summary>
+              <p className="text-sm text-muted-foreground mt-3 pt-3 border-t">
+                {faq.a}
+              </p>
+            </details>
           ))}
         </div>
       </section>
