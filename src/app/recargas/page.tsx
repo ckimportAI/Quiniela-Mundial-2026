@@ -647,11 +647,27 @@ function RecargasContent() {
               />
             </div>
 
+            {!method && (
+              <p className="text-xs text-yellow-700">Selecciona un metodo de pago</p>
+            )}
+            {reference.length < 3 && (
+              <p className="text-xs text-yellow-700">
+                La referencia debe tener al menos 3 caracteres
+              </p>
+            )}
+            {!proofUrl && (
+              <p className="text-xs text-yellow-700">
+                Sube la foto del comprobante de pago
+              </p>
+            )}
+
             <Button
               type="submit"
               className="w-full"
               size="lg"
-              disabled={submitting || !method || reference.length < 3}
+              disabled={
+                submitting || !method || reference.length < 3 || !proofUrl
+              }
             >
               {submitting ? "Enviando..." : "Enviar Reporte de Pago"}
             </Button>
