@@ -77,8 +77,8 @@ export default function Home() {
     }
   }, [status, session, redirecting]);
 
-  // Show loading while checking or redirecting
-  if (status === "loading" || redirecting) {
+  // Show loading only while actively redirecting an authenticated user
+  if (redirecting) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center space-y-2">
