@@ -117,9 +117,9 @@ export default function Home() {
   ];
 
   return (
-    <div className="flex flex-col items-center -mx-4 -mt-6">
-      {/* Hero Section - full bleed via negative margin from container */}
-      <section className="gradient-hero w-full px-4 py-16 sm:py-24 flex flex-col items-center text-center">
+    <div className="flex flex-col items-center gap-8">
+      {/* Hero Section */}
+      <section className="gradient-hero w-full rounded-2xl px-6 py-12 sm:py-16 flex flex-col items-center text-center">
         <div className="animate-pulse-glow text-5xl sm:text-6xl mb-6">
           ⚽
         </div>
@@ -176,7 +176,7 @@ export default function Home() {
       </section>
 
       {/* Stats Section */}
-      <section className="w-full max-w-4xl px-4 -mt-8 relative z-10">
+      <section className="w-full max-w-4xl">
         <div className="grid grid-cols-3 gap-3 sm:gap-6">
           {statItems.map((item) => (
             <div
@@ -194,7 +194,7 @@ export default function Home() {
       </section>
 
       {/* Features Section */}
-      <section className="w-full max-w-4xl px-4 mt-12 mb-12">
+      <section className="w-full max-w-4xl pb-8">
         <h2 className="text-2xl sm:text-3xl font-bold text-center mb-8">
           Como funciona
         </h2>
