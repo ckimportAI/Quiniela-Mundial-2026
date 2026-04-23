@@ -272,7 +272,14 @@ function RecargasContent() {
         fetchPayments();
       } else {
         const data = await res.json();
-        setSubmitError(data.error ?? "Error al enviar reporte de pago");
+        let msg = data.error ?? "Error al enviar reporte de pago";
+        if (data.details?.fieldErrors) {
+          const fields = Object.entries(data.details.fieldErrors)
+            .map(([k, v]) => `${k}: ${(v as string[]).join(", ")}`)
+            .join(" | ");
+          if (fields) msg += ` (${fields})`;
+        }
+        setSubmitError(msg);
       }
     } finally {
       setSubmitting(false);

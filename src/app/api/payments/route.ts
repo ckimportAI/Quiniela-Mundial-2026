@@ -47,8 +47,13 @@ export async function POST(request: NextRequest) {
   const parsed = paymentReportSchema.safeParse(body);
 
   if (!parsed.success) {
+    const flat = parsed.error.flatten();
+    console.error("Payment validation failed:", {
+      body,
+      errors: flat,
+    });
     return NextResponse.json(
-      { error: "Datos invalidos", details: parsed.error.flatten() },
+      { error: "Datos invalidos", details: flat },
       { status: 400 }
     );
   }
