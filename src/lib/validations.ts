@@ -17,11 +17,14 @@ export const nicknameSchema = z.object({
 });
 
 export const paymentReportSchema = z.object({
-  credits: z.number().int().min(1, "Minimo 1 credito").max(50, "Maximo 50 creditos"),
+  packageId: z.string().cuid("Paquete requerido").optional(),
+  credits: z.number().int().min(1).max(50).optional(),
   amount: z.number().positive("El monto debe ser positivo"),
   method: z.string().min(2, "Metodo requerido").max(50),
   reference: z.string().min(3, "Referencia requerida").max(100),
   notes: z.string().max(500).optional(),
+}).refine((data) => !!data.packageId || !!data.credits, {
+  message: "Debes indicar un paquete o cantidad de creditos",
 });
 
 export const reviewPaymentSchema = z.object({

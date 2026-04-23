@@ -18,7 +18,7 @@ const publicLinks = [
 const authLinks = [
   { href: "/predicciones", label: "Predicciones" },
   { href: "/sub-quinielas", label: "Mis Grupos" },
-  { href: "/recargas", label: "Recargas" },
+  { href: "/paquetes", label: "Paquetes" },
 ];
 
 export function Navbar() {

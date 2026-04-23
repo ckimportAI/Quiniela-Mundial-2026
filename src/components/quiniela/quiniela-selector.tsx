@@ -71,7 +71,7 @@ export function QuinielaSelector({
       if (res.status === 402) {
         // No credits - redirect to recargas
         alert("No tienes creditos. Redirigiendo a la pagina de recargas...");
-        router.push("/recargas");
+        router.push("/paquetes");
       } else {
         alert(err.error ?? "Error al crear quiniela");
       }
@@ -107,7 +107,7 @@ export function QuinielaSelector({
             />
           </>
         ) : (
-          <Button onClick={() => router.push("/recargas")}>
+          <Button onClick={() => router.push("/paquetes")}>
             Recargar creditos
           </Button>
         )}
@@ -152,7 +152,7 @@ export function QuinielaSelector({
         <Button
           variant="outline"
           size="sm"
-          onClick={() => router.push("/recargas")}
+          onClick={() => router.push("/paquetes")}
         >
           Recargar creditos
         </Button>

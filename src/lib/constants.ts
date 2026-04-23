@@ -14,3 +14,19 @@ export const TERMS_VERSION = "1.0";
 export const TERMS_LAST_UPDATE = "2026-04-23";
 export const CONTACT_EMAIL = "quinielapanas@gmail.com";
 export const ENTRY_FEE_USD = 12;
+
+// Launch 2x1 promo
+export const PROMO_2X1_START = new Date("2026-04-23T00:00:00-04:00"); // VET
+export const PROMO_2X1_END = new Date("2026-06-04T23:59:59-04:00");
+export const PROMO_2X1_MULTIPLIER = 2;
+
+export function isPromo2x1Active(at: Date = new Date()): boolean {
+  return at >= PROMO_2X1_START && at <= PROMO_2X1_END;
+}
+
+// Pago Movil (Venezuela)
+export const PAGO_MOVIL = {
+  phone: "0414-234-3406",
+  cedula: "V-11.037.269",
+  bank: "Banesco",
+};

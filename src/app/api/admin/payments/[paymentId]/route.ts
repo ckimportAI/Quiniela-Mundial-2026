@@ -42,28 +42,67 @@ export async function PATCH(
   }
 
   if (parsed.data.status === "APPROVED") {
-    // Approve: update payment + increment user credits in a transaction
-    const [updatedPayment] = await prisma.$transaction([
+    // Fetch user to auto-name quinielas
+    const user = await prisma.user.findUnique({
+      where: { id: payment.userId },
+      select: { nickname: true, name: true, _count: { select: { quinielas: true } } },
+    });
+    if (!user) {
+      return NextResponse.json({ error: "Usuario no encontrado" }, { status: 404 });
+    }
+
+    const nickname = user.nickname ?? user.name ?? "user";
+    const existingCount = user._count.quinielas;
+    const toCreate = payment.credits; // already includes promo if applied
+
+    // If payment is package-based → auto-create quinielas.
+    // If legacy credit-only payment → just increment credits.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const ops: any[] = [
       prisma.paymentReport.update({
         where: { id: paymentId },
         data: {
           status: "APPROVED",
           reviewedBy: session.user.id,
           reviewedAt: new Date(),
+          quinielasGranted: payment.packageId ? toCreate : 0,
         },
-      }),
-      prisma.user.update({
-        where: { id: payment.userId },
-        data: { credits: { increment: payment.credits } },
       }),
       prisma.adminLog.create({
         data: {
           adminId: session.user.id,
           action: "APPROVE_PAYMENT",
-          details: `Approved payment #${paymentId}: ${payment.credits} credits for user ${payment.userId}`,
+          details: payment.packageId
+            ? `Approved payment #${paymentId}: ${toCreate} quinielas for user ${payment.userId} (promo: ${payment.promoApplied})`
+            : `Approved payment #${paymentId}: ${payment.credits} credits for user ${payment.userId}`,
         },
       }),
-    ]);
+    ];
+
+    if (payment.packageId) {
+      // Auto-create N quinielas
+      for (let i = 0; i < toCreate; i++) {
+        ops.push(
+          prisma.quiniela.create({
+            data: {
+              name: `${nickname}-${existingCount + i + 1}`,
+              userId: payment.userId,
+              score: { create: {} },
+            },
+          })
+        );
+      }
+    } else {
+      // Legacy: just add credits
+      ops.push(
+        prisma.user.update({
+          where: { id: payment.userId },
+          data: { credits: { increment: payment.credits } },
+        })
+      );
+    }
+
+    const [updatedPayment] = await prisma.$transaction(ops);
 
     return NextResponse.json(updatedPayment);
   } else {

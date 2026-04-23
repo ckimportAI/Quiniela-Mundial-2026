@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { useSession } from "next-auth/react";
+import { useState, useEffect, useCallback, Suspense } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,9 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
-// Configurable credit price
-const CREDIT_PRICE = 5; // USD per credit
+import { Sparkles, Copy, Check } from "lucide-react";
 
 interface PaymentData {
   id: string;
@@ -27,32 +26,89 @@ interface PaymentData {
   notes: string | null;
   status: "PENDING" | "APPROVED" | "REJECTED";
   rejectionNote: string | null;
+  promoApplied: boolean;
   createdAt: string;
 }
 
+interface PackageData {
+  id: string;
+  code: string;
+  name: string;
+  description: string | null;
+  priceUsd: number;
+  quinielasCount: number;
+  effectiveQuinielas: number;
+}
+
+interface PromoData {
+  active: boolean;
+  name: string;
+  startsAt: string;
+  endsAt: string;
+  multiplier: number;
+}
+
 const PAYMENT_METHODS = [
+  "Pago Movil",
   "Zelle",
-  "Transferencia bancaria",
-  "Pago movil",
   "Binance Pay",
-  "PayPal",
-  "Efectivo",
-  "Otro",
+  "Transferencia bancaria",
 ];
 
-export default function RecargasPage() {
-  const { data: session } = useSession();
-  const [credits, setCredits] = useState(0);
+const PAGO_MOVIL = {
+  phone: "0414-234-3406",
+  cedula: "V-11.037.269",
+  bank: "Banesco",
+};
+
+function CopyBtn({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        navigator.clipboard.writeText(text);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1500);
+      }}
+      className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+    >
+      {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+      {copied ? "Copiado" : "Copiar"}
+    </button>
+  );
+}
+
+function RecargasContent() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const packageId = searchParams.get("pkg");
+
+  const [pkg, setPkg] = useState<PackageData | null>(null);
+  const [promo, setPromo] = useState<PromoData | null>(null);
   const [payments, setPayments] = useState<PaymentData[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Form state
-  const [formCredits, setFormCredits] = useState(1);
-  const [method, setMethod] = useState("");
+  const [method, setMethod] = useState("Pago Movil");
   const [reference, setReference] = useState("");
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
+
+  // Load packages list to resolve current selection
+  useEffect(() => {
+    fetch("/api/packages")
+      .then((r) => r.json())
+      .then((data) => {
+        setPromo(data.promo);
+        if (packageId) {
+          const found = data.packages.find(
+            (p: PackageData) => p.id === packageId
+          );
+          setPkg(found ?? null);
+        }
+      });
+  }, [packageId]);
 
   const fetchPayments = useCallback(async () => {
     try {
@@ -60,7 +116,6 @@ export default function RecargasPage() {
       if (res.ok) {
         const data = await res.json();
         setPayments(data.payments);
-        setCredits(data.credits);
       }
     } finally {
       setLoading(false);
@@ -71,8 +126,17 @@ export default function RecargasPage() {
     fetchPayments();
   }, [fetchPayments]);
 
+  // If no package selected, redirect to packages page
+  useEffect(() => {
+    if (!packageId) {
+      router.replace("/paquetes");
+    }
+  }, [packageId, router]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!pkg) return;
+
     setSubmitting(true);
     setSuccess(false);
 
@@ -81,8 +145,8 @@ export default function RecargasPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          credits: formCredits,
-          amount: formCredits * CREDIT_PRICE,
+          packageId: pkg.id,
+          amount: pkg.priceUsd,
           method,
           reference,
           notes: notes || undefined,
@@ -93,8 +157,6 @@ export default function RecargasPage() {
         setSuccess(true);
         setReference("");
         setNotes("");
-        setFormCredits(1);
-        setMethod("");
         fetchPayments();
       } else {
         const data = await res.json();
@@ -108,9 +170,23 @@ export default function RecargasPage() {
   const statusBadge = (status: string) => {
     switch (status) {
       case "PENDING":
-        return <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-300">Pendiente</Badge>;
+        return (
+          <Badge
+            variant="outline"
+            className="bg-yellow-50 text-yellow-700 border-yellow-300"
+          >
+            Pendiente
+          </Badge>
+        );
       case "APPROVED":
-        return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300">Aprobado</Badge>;
+        return (
+          <Badge
+            variant="outline"
+            className="bg-green-50 text-green-700 border-green-300"
+          >
+            Aprobado
+          </Badge>
+        );
       case "REJECTED":
         return <Badge variant="destructive">Rechazado</Badge>;
       default:
@@ -118,67 +194,120 @@ export default function RecargasPage() {
     }
   };
 
+  if (!pkg) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-muted-foreground">Cargando paquete...</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-6">
+    <div className="max-w-3xl mx-auto space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Recargar Creditos</h1>
-        <p className="text-muted-foreground">
-          Compra creditos para crear quinielas. Cada credito = 1 quiniela.
-        </p>
+        <Link
+          href="/paquetes"
+          className="text-sm text-muted-foreground hover:text-foreground"
+        >
+          &larr; Cambiar paquete
+        </Link>
+        <h1 className="text-3xl font-bold tracking-tight mt-2">
+          Reportar Pago
+        </h1>
       </div>
 
-      {/* Credits balance */}
-      <Card>
+      {/* Package summary */}
+      <Card className="border-primary border-2">
         <CardContent className="p-6">
-          <div className="flex items-center justify-between">
+          <div className="flex items-start justify-between gap-4 flex-wrap">
             <div>
-              <p className="text-sm text-muted-foreground">Creditos disponibles</p>
-              <p className="text-4xl font-bold">{credits}</p>
+              <div className="flex items-center gap-2 mb-1">
+                <h2 className="text-xl font-bold">{pkg.name}</h2>
+                {promo?.active && (
+                  <Badge className="bg-gradient-to-r from-yellow-400 to-orange-400 text-black">
+                    <Sparkles className="h-3 w-3 mr-1" />
+                    2x1
+                  </Badge>
+                )}
+              </div>
+              <p className="text-sm text-muted-foreground">
+                {promo?.active ? (
+                  <>
+                    <span className="line-through mr-1">
+                      {pkg.quinielasCount} quinielas
+                    </span>
+                    <strong className="text-green-600">
+                      {pkg.effectiveQuinielas} quinielas
+                    </strong>{" "}
+                    con 2x1
+                  </>
+                ) : (
+                  <>{pkg.quinielasCount} quinielas</>
+                )}
+              </p>
             </div>
             <div className="text-right">
-              <p className="text-sm text-muted-foreground">Precio por credito</p>
-              <p className="text-2xl font-semibold">${CREDIT_PRICE}</p>
+              <div className="text-3xl font-extrabold">${pkg.priceUsd}</div>
+              <p className="text-xs text-muted-foreground">USD</p>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Payment form */}
+      {/* Pago Movil Info */}
       <Card>
         <CardHeader>
-          <CardTitle>Reportar Pago</CardTitle>
+          <CardTitle className="text-lg">Datos para pagar</CardTitle>
           <p className="text-sm text-muted-foreground">
-            Realiza tu pago y luego completa este formulario con los datos de la
-            transferencia. El administrador revisara y aprobara tu pago.
+            Realiza el pago con cualquiera de estos metodos y luego reporta abajo.
           </p>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="rounded-lg border bg-muted/40 p-4">
+            <p className="text-sm font-semibold mb-2">Pago Movil (Bs)</p>
+            <div className="space-y-1 text-sm">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-muted-foreground">Telefono:</span>
+                <div className="flex items-center gap-2">
+                  <span className="font-mono">{PAGO_MOVIL.phone}</span>
+                  <CopyBtn text={PAGO_MOVIL.phone.replace(/-/g, "")} />
+                </div>
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-muted-foreground">Cedula:</span>
+                <div className="flex items-center gap-2">
+                  <span className="font-mono">{PAGO_MOVIL.cedula}</span>
+                  <CopyBtn text={PAGO_MOVIL.cedula} />
+                </div>
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-muted-foreground">Banco:</span>
+                <span className="font-mono">{PAGO_MOVIL.bank}</span>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground mt-3">
+              El monto en Bs se calcula con la tasa Euro BCV del dia.
+            </p>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Tambien aceptamos Zelle y Binance Pay (consulta por WhatsApp).
+          </p>
+        </CardContent>
+      </Card>
+
+      {/* Payment report form */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Datos del pago</CardTitle>
         </CardHeader>
         <CardContent>
           {success && (
             <div className="mb-4 rounded-lg bg-green-50 border border-green-200 p-3 text-sm text-green-700">
-              ✓ Reporte de pago enviado. El administrador lo revisara pronto.
+              Reporte enviado. El administrador lo revisara pronto y se crearan
+              tus quinielas automaticamente al aprobar.
             </div>
           )}
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="credits">Cantidad de creditos</Label>
-                <Input
-                  id="credits"
-                  type="number"
-                  min={1}
-                  max={50}
-                  value={formCredits}
-                  onChange={(e) => setFormCredits(Number(e.target.value))}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Monto a pagar</Label>
-                <div className="flex items-center h-10 px-3 rounded-md border bg-muted text-sm">
-                  ${formCredits * CREDIT_PRICE}
-                </div>
-              </div>
-            </div>
-
             <div className="space-y-2">
               <Label htmlFor="method">Metodo de pago</Label>
               <Select value={method} onValueChange={setMethod}>
@@ -201,7 +330,7 @@ export default function RecargasPage() {
                 id="reference"
                 value={reference}
                 onChange={(e) => setReference(e.target.value)}
-                placeholder="Nro de confirmacion o referencia"
+                placeholder="Nro de confirmacion del banco"
               />
             </div>
 
@@ -218,12 +347,8 @@ export default function RecargasPage() {
             <Button
               type="submit"
               className="w-full"
-              disabled={
-                submitting ||
-                !method ||
-                reference.length < 3 ||
-                formCredits < 1
-              }
+              size="lg"
+              disabled={submitting || !method || reference.length < 3}
             >
               {submitting ? "Enviando..." : "Enviar Reporte de Pago"}
             </Button>
@@ -238,46 +363,44 @@ export default function RecargasPage() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="space-y-3">
-              {[1, 2].map((i) => (
-                <div
-                  key={i}
-                  className="h-16 rounded-lg border animate-pulse bg-muted"
-                />
-              ))}
-            </div>
+            <div className="h-16 rounded-lg border animate-pulse bg-muted" />
           ) : payments.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-6">
+            <p className="text-sm text-muted-foreground text-center py-4">
               No tienes pagos reportados aun.
             </p>
           ) : (
             <div className="space-y-3">
-              {payments.map((payment) => (
+              {payments.map((p) => (
                 <div
-                  key={payment.id}
+                  key={p.id}
                   className="flex items-center justify-between rounded-lg border p-3"
                 >
                   <div className="space-y-1">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-medium">
-                        {payment.credits} credito{payment.credits > 1 ? "s" : ""}
+                        {p.credits} quiniela{p.credits > 1 ? "s" : ""}
                       </span>
                       <span className="text-sm text-muted-foreground">
-                        ${payment.amount}
+                        ${p.amount}
                       </span>
-                      {statusBadge(payment.status)}
+                      {p.promoApplied && (
+                        <Badge className="bg-gradient-to-r from-yellow-400 to-orange-400 text-black text-[10px]">
+                          2x1
+                        </Badge>
+                      )}
+                      {statusBadge(p.status)}
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      {payment.method} - Ref: {payment.reference}
+                      {p.method} - Ref: {p.reference}
                     </p>
-                    {payment.rejectionNote && (
+                    {p.rejectionNote && (
                       <p className="text-xs text-destructive">
-                        Motivo: {payment.rejectionNote}
+                        Motivo: {p.rejectionNote}
                       </p>
                     )}
                   </div>
                   <span className="text-xs text-muted-foreground">
-                    {new Date(payment.createdAt).toLocaleDateString("es")}
+                    {new Date(p.createdAt).toLocaleDateString("es")}
                   </span>
                 </div>
               ))}
@@ -286,5 +409,13 @@ export default function RecargasPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export default function RecargasPage() {
+  return (
+    <Suspense>
+      <RecargasContent />
+    </Suspense>
   );
 }

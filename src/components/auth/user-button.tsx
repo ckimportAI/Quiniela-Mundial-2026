@@ -66,10 +66,10 @@ export function UserButton() {
           <Link href="/predicciones">Predicciones</Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
-          <Link href="/recargas">Recargar Creditos</Link>
+          <Link href="/paquetes">Comprar Quinielas</Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
-          <Link href="/tabla">Tabla de Posiciones</Link>
+          <Link href="/tabla">Leaderboard</Link>
         </DropdownMenuItem>
         {session.user.role === "ADMIN" && (
           <>

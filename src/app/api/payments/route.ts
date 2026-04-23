@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { paymentReportSchema } from "@/lib/validations";
+import { isPromo2x1Active, PROMO_2X1_MULTIPLIER } from "@/lib/constants";
 
 // GET: User's payment history
 export async function GET() {
@@ -42,14 +43,36 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // Resolve package if packageId provided
+  let credits = parsed.data.credits ?? 0;
+  let promoApplied = false;
+
+  if (parsed.data.packageId) {
+    const pkg = await prisma.package.findUnique({
+      where: { id: parsed.data.packageId },
+    });
+    if (!pkg || !pkg.active) {
+      return NextResponse.json(
+        { error: "Paquete no encontrado" },
+        { status: 404 }
+      );
+    }
+    promoApplied = isPromo2x1Active();
+    credits = promoApplied
+      ? pkg.quinielasCount * PROMO_2X1_MULTIPLIER
+      : pkg.quinielasCount;
+  }
+
   const payment = await prisma.paymentReport.create({
     data: {
       userId: session.user.id,
-      credits: parsed.data.credits,
+      packageId: parsed.data.packageId ?? null,
+      credits,
       amount: parsed.data.amount,
       method: parsed.data.method,
       reference: parsed.data.reference,
       notes: parsed.data.notes,
+      promoApplied,
     },
   });
 
