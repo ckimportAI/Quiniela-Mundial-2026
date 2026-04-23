@@ -373,23 +373,23 @@ function RecargasContent() {
           </p>
         </CardHeader>
         <CardContent className="space-y-3">
-          {/* Bs amount highlight */}
+          {/* Bs amount highlight (calculated with Euro BCV rate) */}
           {rate && (
             <div className="rounded-lg border-2 border-primary bg-primary/5 p-4 text-center">
               <p className="text-xs uppercase tracking-wide text-muted-foreground">
                 Monto a depositar
               </p>
               <p className="text-3xl font-extrabold text-primary tabular-nums mt-1">
-                Bs. {(pkg.priceUsd * rate.usd).toLocaleString("es-VE", {
+                Bs. {(pkg.priceUsd * rate.eur).toLocaleString("es-VE", {
                   minimumFractionDigits: 2,
                   maximumFractionDigits: 2,
                 })}
               </p>
               <p className="text-xs text-muted-foreground mt-2">
-                ${pkg.priceUsd} USD &times; {rate.usd.toLocaleString("es-VE", { maximumFractionDigits: 4 })} Bs/$ (tasa BCV)
+                ${pkg.priceUsd} &times; {rate.eur.toLocaleString("es-VE", { maximumFractionDigits: 4 })} (tasa Euro BCV)
               </p>
               <div className="mt-3 flex items-center justify-center gap-1">
-                <CopyBtn text={(pkg.priceUsd * rate.usd).toFixed(2)} />
+                <CopyBtn text={(pkg.priceUsd * rate.eur).toFixed(2)} />
               </div>
             </div>
           )}
@@ -403,15 +403,15 @@ function RecargasContent() {
           {rate && (
             <div className="rounded-lg border bg-muted/40 p-3 text-xs space-y-1">
               <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Tasa USD BCV:</span>
-                <span className="font-mono">
-                  {rate.usd.toLocaleString("es-VE", { maximumFractionDigits: 4 })} Bs/$
+                <span className="text-muted-foreground">Tasa Euro BCV (referencia):</span>
+                <span className="font-mono font-semibold">
+                  {rate.eur.toLocaleString("es-VE", { maximumFractionDigits: 4 })} Bs/€
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Tasa Euro BCV:</span>
+                <span className="text-muted-foreground">Tasa USD BCV:</span>
                 <span className="font-mono">
-                  {rate.eur.toLocaleString("es-VE", { maximumFractionDigits: 4 })} Bs/€
+                  {rate.usd.toLocaleString("es-VE", { maximumFractionDigits: 4 })} Bs/$
                 </span>
               </div>
               <p className="text-[10px] text-muted-foreground pt-1">
@@ -532,7 +532,7 @@ function RecargasContent() {
 
                 {ocrData && !ocrLoading && (() => {
                   const expectedBs =
-                    rate && pkg ? pkg.priceUsd * rate.usd : null;
+                    rate && pkg ? pkg.priceUsd * rate.eur : null;
                   let amountCheck: "ok" | "low" | "high" | "unknown" = "unknown";
                   let diffPct = 0;
                   if (expectedBs && ocrData.amountBs != null) {
