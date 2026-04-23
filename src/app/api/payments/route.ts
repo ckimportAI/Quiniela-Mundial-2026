@@ -53,6 +53,28 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // Duplicate detection: same reference + method already reported (and not rejected)
+  const existingDuplicate = await prisma.paymentReport.findFirst({
+    where: {
+      reference: parsed.data.reference,
+      method: parsed.data.method,
+      status: { in: ["PENDING", "APPROVED"] },
+    },
+    select: { id: true, userId: true },
+  });
+
+  if (existingDuplicate) {
+    const sameUser = existingDuplicate.userId === session.user.id;
+    return NextResponse.json(
+      {
+        error: sameUser
+          ? "Ya reportaste este comprobante anteriormente."
+          : "Este comprobante ya fue reportado en el sistema. Si crees que es un error, contacta a soporte.",
+      },
+      { status: 409 }
+    );
+  }
+
   let credits = parsed.data.credits ?? 0;
   let promoApplied = false;
 

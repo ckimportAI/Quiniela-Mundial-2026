@@ -100,6 +100,7 @@ function RecargasContent() {
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   // Receipt upload + OCR state
   const [proofUrl, setProofUrl] = useState<string | null>(null);
@@ -216,6 +217,7 @@ function RecargasContent() {
 
     setSubmitting(true);
     setSuccess(false);
+    setSubmitError(null);
 
     try {
       const res = await fetch("/api/payments", {
@@ -241,7 +243,7 @@ function RecargasContent() {
         fetchPayments();
       } else {
         const data = await res.json();
-        alert(data.error ?? "Error al enviar reporte de pago");
+        setSubmitError(data.error ?? "Error al enviar reporte de pago");
       }
     } finally {
       setSubmitting(false);
@@ -387,6 +389,11 @@ function RecargasContent() {
             <div className="mb-4 rounded-lg bg-green-50 border border-green-200 p-3 text-sm text-green-700">
               Reporte enviado. El administrador lo revisara pronto y se crearan
               tus quinielas automaticamente al aprobar.
+            </div>
+          )}
+          {submitError && (
+            <div className="mb-4 rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-700">
+              {submitError}
             </div>
           )}
 
