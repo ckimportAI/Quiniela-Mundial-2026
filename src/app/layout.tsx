@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { SessionProvider } from "@/components/auth/session-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { Navbar } from "@/components/layout/navbar";
+import { Footer } from "@/components/layout/footer";
 import "./globals.css";
 import "@/lib/auth-types";
 
@@ -33,8 +34,11 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <SessionProvider>
-          <Navbar />
-          <main className="container mx-auto px-4 py-6">{children}</main>
+          <div className="flex flex-col min-h-screen">
+            <Navbar />
+            <main className="container mx-auto px-4 py-6 flex-1">{children}</main>
+            <Footer />
+          </div>
           <Toaster />
         </SessionProvider>
       </body>

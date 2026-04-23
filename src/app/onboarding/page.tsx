@@ -11,6 +11,7 @@ export default function OnboardingPage() {
   const [fullName, setFullName] = useState("");
   const [cedula, setCedula] = useState("");
   const [phone, setPhone] = useState("");
+  const [aceptaTerminos, setAceptaTerminos] = useState(false);
   const [available, setAvailable] = useState<boolean | null>(null);
   const [checking, setChecking] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -67,6 +68,7 @@ export default function OnboardingPage() {
           name: fullName.trim(),
           cedula: cedula.trim(),
           phone: phone.trim(),
+          aceptaTerminos,
         }),
       });
 
@@ -94,7 +96,8 @@ export default function OnboardingPage() {
     available === true &&
     fullName.trim().length >= 2 &&
     cedula.trim().length >= 5 &&
-    phone.trim().length >= 7;
+    phone.trim().length >= 7 &&
+    aceptaTerminos;
 
   return (
     <div className="flex items-center justify-center min-h-[80vh]">
@@ -196,12 +199,42 @@ export default function OnboardingPage() {
               </div>
             )}
 
+            {/* Terms acceptance */}
+            <label className="flex items-start gap-2 text-sm cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={aceptaTerminos}
+                onChange={(e) => setAceptaTerminos(e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-input accent-primary"
+              />
+              <span className="text-muted-foreground">
+                He leido y acepto los{" "}
+                <a
+                  href="/terminos"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary underline font-medium"
+                >
+                  Terminos y Condiciones
+                </a>{" "}
+                y la{" "}
+                <a
+                  href="/privacidad"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary underline font-medium"
+                >
+                  Politica de Privacidad
+                </a>
+              </span>
+            </label>
+
             <Button
               type="submit"
               className="w-full"
               disabled={!isFormValid || saving}
             >
-              {saving ? "Guardando..." : "Continuar"}
+              {saving ? "Guardando..." : "Crear Cuenta"}
             </Button>
           </form>
         </CardContent>

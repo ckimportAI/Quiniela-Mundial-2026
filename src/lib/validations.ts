@@ -9,6 +9,11 @@ export const nicknameSchema = z.object({
   name: z.string().min(2, "Minimo 2 caracteres").max(100, "Maximo 100 caracteres"),
   cedula: z.string().min(5, "Minimo 5 caracteres").max(20, "Maximo 20 caracteres"),
   phone: z.string().min(7, "Minimo 7 caracteres").max(20, "Maximo 20 caracteres"),
+  aceptaTerminos: z
+    .boolean()
+    .refine((v) => v === true, {
+      message: "Debes aceptar los Terminos y la Politica de Privacidad",
+    }),
 });
 
 export const paymentReportSchema = z.object({

@@ -20,6 +20,15 @@ model User {
   image         String?
   cedula        String?   @db.VarChar(20)
   phone         String?   @db.VarChar(20)
+
+  // Terms & Privacy acceptance
+  terminosAceptados         Boolean   @default(false)
+  terminosVersion           String?   @db.VarChar(10)
+  terminosFechaAceptacion   DateTime?
+  terminosIp                String?   @db.VarChar(45)
+  privacidadAceptada        Boolean   @default(false)
+  privacidadFechaAceptacion DateTime?
+  userAgent                 String?   @db.VarChar(500)
   role          Role      @default(PARTICIPANT)
   credits       Int       @default(0)
   createdAt     DateTime  @default(now())
