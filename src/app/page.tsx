@@ -120,11 +120,14 @@ export default function Home() {
     <div className="flex flex-col items-center gap-8">
       {/* Hero Section */}
       <section className="gradient-hero w-full rounded-2xl px-6 py-12 sm:py-16 flex flex-col items-center text-center">
-        <div className="animate-pulse-glow text-5xl sm:text-6xl mb-6">
-          ⚽
-        </div>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/wc-emblem.png"
+          alt="FIFA World Cup 2026"
+          className="h-32 sm:h-40 w-auto mb-4 drop-shadow-2xl"
+        />
 
-        <h1 className="text-4xl sm:text-6xl font-extrabold text-white tracking-tight leading-tight">
+        <h1 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight leading-tight">
           Quiniela Mundial
           <span className="block text-yellow-300">2026</span>
         </h1>
