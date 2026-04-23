@@ -1011,10 +1011,10 @@ const matchesData: MatchData[] = [
     venue: "Mercedes-Benz Stadium",
   },
 
-  // ========== THIRD BIHCE (1 match) ==========
+  // ========== THIRD PLACE (1 match) ==========
   {
     matchNumber: 103,
-    phase: "THIRD_BIHCE",
+    phase: "THIRD_PLACE",
     dateTimeET: "2026-07-18T17:00",
     venue: "Hard Rock Stadium",
   },
