@@ -18,7 +18,10 @@ export async function GET(request: NextRequest) {
     where,
     include: {
       user: {
-        select: { id: true, name: true, nickname: true, email: true },
+        select: { id: true, name: true, nickname: true, email: true, phone: true, cedula: true },
+      },
+      package: {
+        select: { id: true, code: true, name: true, priceUsd: true, quinielasCount: true },
       },
     },
     orderBy: [
