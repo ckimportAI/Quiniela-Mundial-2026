@@ -1,6 +1,6 @@
 "use client";
 
-import { signIn, getSession } from "next-auth/react";
+import { signIn, signOut, useSession } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
@@ -33,6 +33,9 @@ function LoginForm() {
     setLoading(true);
     setError("");
     try {
+      // Sign out any existing session first
+      await signOut({ redirect: false });
+
       const result = await signIn("credentials", {
         email,
         redirect: false,
@@ -41,14 +44,18 @@ function LoginForm() {
         setError("Error al iniciar sesion: " + result.error);
         setLoading(false);
       } else {
-        // Fetch updated session to check nickname
-        const session = await getSession();
-        if (session?.user && !session.user.nickname) {
-          // New user without nickname - go to onboarding
-          window.location.href = "/onboarding";
-        } else {
-          window.location.href = callbackUrl;
+        // Check if user has nickname by querying DB with email
+        const checkRes = await fetch(
+          `/api/users/check-profile?email=${encodeURIComponent(email)}`
+        );
+        if (checkRes.ok) {
+          const profile = await checkRes.json();
+          if (!profile.hasNickname) {
+            window.location.href = "/onboarding";
+            return;
+          }
         }
+        window.location.href = "/predicciones";
       }
     } catch (err) {
       setError("Error de conexion. Intenta de nuevo.");

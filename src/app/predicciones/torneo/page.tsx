@@ -9,6 +9,8 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { QuinielaSelector } from "@/components/quiniela/quiniela-selector";
 import Link from "next/link";
+import { TeamFlag } from "@/components/ui/team-flag";
+import { TeamSelect } from "@/components/ui/team-select";
 
 interface Team {
   id: string;
@@ -25,6 +27,15 @@ interface TournamentPrediction {
   points: number | null;
   team: Team | null;
 }
+
+const TOP_SCORER_OPTIONS = [
+  { name: "Kylian Mbappé", country: "FRA" },
+  { name: "Harry Kane", country: "ENG" },
+  { name: "Erling Haaland", country: "NOR" },
+  { name: "Lionel Messi", country: "ARG" },
+  { name: "Lamine Yamal", country: "ESP" },
+  { name: "Cristiano Ronaldo", country: "POR" },
+];
 
 const predictionTypes = [
   {
@@ -218,48 +229,82 @@ function TorneoPredictionsContent() {
                   {pt.needsTeam && (
                     <div className="space-y-1.5">
                       <Label>Equipo</Label>
-                      <select
+                      <TeamSelect
+                        teams={teams}
                         value={sel.teamId ?? ""}
-                        onChange={(e) =>
+                        onChange={(teamId) =>
                           setSelections((prev) => ({
                             ...prev,
-                            [pt.type]: { ...prev[pt.type], teamId: e.target.value },
-                          }))
-                        }
-                        className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-                      >
-                        <option value="">Seleccionar equipo...</option>
-                        {teams.map((team) => (
-                          <option key={team.id} value={team.id}>
-                            {team.flag} {team.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
-
-                  {pt.needsPlayer && (
-                    <div className="space-y-1.5">
-                      <Label>Nombre del jugador</Label>
-                      <Input
-                        placeholder="Ej: Mbappe"
-                        value={sel.playerName ?? ""}
-                        onChange={(e) =>
-                          setSelections((prev) => ({
-                            ...prev,
-                            [pt.type]: {
-                              ...prev[pt.type],
-                              playerName: e.target.value,
-                            },
+                            [pt.type]: { ...prev[pt.type], teamId },
                           }))
                         }
                       />
                     </div>
                   )}
 
+                  {pt.needsPlayer && (
+                    <div className="space-y-1.5">
+                      <Label>Goleador</Label>
+                      <div className="space-y-2">
+                        {TOP_SCORER_OPTIONS.map((player) => (
+                          <button
+                            key={player.name}
+                            type="button"
+                            onClick={() =>
+                              setSelections((prev) => ({
+                                ...prev,
+                                [pt.type]: { ...prev[pt.type], playerName: player.name },
+                              }))
+                            }
+                            className={`flex items-center gap-2 w-full rounded-md border px-3 py-2 text-sm transition-colors ${
+                              sel.playerName === player.name
+                                ? "border-primary bg-primary/5 font-medium"
+                                : "border-input hover:bg-accent/50"
+                            }`}
+                          >
+                            <TeamFlag code={player.country} size="sm" />
+                            <span>{player.name}</span>
+                          </button>
+                        ))}
+                        {/* Otro jugador */}
+                        <div className="space-y-1.5">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setSelections((prev) => ({
+                                ...prev,
+                                [pt.type]: { ...prev[pt.type], playerName: "" },
+                              }))
+                            }
+                            className={`flex items-center gap-2 w-full rounded-md border px-3 py-2 text-sm transition-colors ${
+                              sel.playerName != null && !TOP_SCORER_OPTIONS.some((p) => p.name === sel.playerName)
+                                ? "border-primary bg-primary/5 font-medium"
+                                : "border-input hover:bg-accent/50"
+                            }`}
+                          >
+                            Otro jugador
+                          </button>
+                          {sel.playerName != null && !TOP_SCORER_OPTIONS.some((p) => p.name === sel.playerName) && (
+                            <Input
+                              placeholder="Nombre del jugador"
+                              value={sel.playerName ?? ""}
+                              onChange={(e) =>
+                                setSelections((prev) => ({
+                                  ...prev,
+                                  [pt.type]: { ...prev[pt.type], playerName: e.target.value },
+                                }))
+                              }
+                              autoFocus
+                            />
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   {existing?.team && (
-                    <p className="text-sm text-muted-foreground">
-                      Prediccion actual: {existing.team.flag}{" "}
+                    <p className="text-sm text-muted-foreground flex items-center gap-1.5">
+                      Prediccion actual: <TeamFlag code={existing.team.code} size="sm" />{" "}
                       {existing.team.name}
                       {existing.points != null && (
                         <Badge variant="secondary" className="ml-2">

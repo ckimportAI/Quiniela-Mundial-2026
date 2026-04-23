@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -51,15 +52,42 @@ function CountdownUnit({ value, label }: { value: number; label: string }) {
 }
 
 export default function Home() {
+  const { data: session, status } = useSession();
   const countdown = useCountdown(TOURNAMENT_START_DATE);
   const [stats, setStats] = useState({ users: 0, quinielas: 0, predictions: 0 });
+  const [redirecting, setRedirecting] = useState(false);
 
+  // Fetch stats (must be before any early return)
   useEffect(() => {
     fetch("/api/stats")
       .then((r) => r.json())
       .then(setStats)
       .catch(() => {});
   }, []);
+
+  // Logged-in users: check nickname then redirect
+  useEffect(() => {
+    if (status === "authenticated" && !redirecting) {
+      setRedirecting(true);
+      if (!session?.user?.nickname) {
+        window.location.href = "/onboarding";
+      } else {
+        window.location.href = "/predicciones";
+      }
+    }
+  }, [status, session, redirecting]);
+
+  // Show loading while checking or redirecting
+  if (status === "loading" || redirecting) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center space-y-2">
+          <div className="text-4xl animate-pulse-glow">⚽</div>
+          <p className="text-muted-foreground">Cargando...</p>
+        </div>
+      </div>
+    );
+  }
 
   const features = [
     {
@@ -119,7 +147,7 @@ export default function Home() {
             size="lg"
             className="bg-white/20 text-white border-2 border-white/50 hover:bg-white/30 font-bold text-base px-8 backdrop-blur-sm"
           >
-            <Link href="/tabla">Ver Tabla</Link>
+            <Link href="/tabla">Ver Leaderboard</Link>
           </Button>
         </div>
 

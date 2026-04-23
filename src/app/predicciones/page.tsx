@@ -5,11 +5,12 @@ import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { QuinielaSelector } from "@/components/quiniela/quiniela-selector";
+import { TeamFlag } from "@/components/ui/team-flag";
 
 interface GroupData {
   id: string;
   name: string;
-  teams: { id: string; name: string; flag: string | null }[];
+  teams: { id: string; name: string; code: string; flag: string | null }[];
 }
 
 export default function PrediccionesPage() {
@@ -98,7 +99,7 @@ export default function PrediccionesPage() {
                               key={team.id}
                               className="flex items-center gap-1.5 text-sm"
                             >
-                              <span>{team.flag}</span>
+                              <TeamFlag code={team.code} size="md" />
                               <span>{team.name}</span>
                             </div>
                           ))}

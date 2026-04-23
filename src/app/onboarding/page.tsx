@@ -76,7 +76,8 @@ export default function OnboardingPage() {
         return;
       }
 
-      // Hard redirect to home so JWT refreshes with new nickname
+      // Redirect to home (not protected by middleware)
+      // JWT will refresh with nickname on next protected route visit
       window.location.href = "/";
     } finally {
       setSaving(false);

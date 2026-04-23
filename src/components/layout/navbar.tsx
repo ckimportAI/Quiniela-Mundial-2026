@@ -12,7 +12,7 @@ const publicLinks = [
   { href: "/", label: "Inicio" },
   { href: "/grupos", label: "Grupos" },
   { href: "/resultados", label: "Resultados" },
-  { href: "/tabla", label: "Tabla" },
+  { href: "/tabla", label: "Leaderboard" },
 ];
 
 const authLinks = [

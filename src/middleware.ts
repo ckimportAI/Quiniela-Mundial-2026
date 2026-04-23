@@ -41,6 +41,7 @@ export const config = {
     "/admin/:path*",
     "/tabla/:path*",
     "/recargas/:path*",
+    "/sub-quinielas/:path*",
     "/onboarding",
   ],
 };
