@@ -146,10 +146,6 @@ export default function Home() {
       q: "Puedo tener varias quinielas?",
       a: "Si. Cada paquete te da N quinielas independientes, puedes usar estrategias distintas en cada una. Tambien puedes crear grupos privados con amigos.",
     },
-    {
-      q: "Que pasa si me equivoco con el monto del pago?",
-      a: "Tenemos tolerancia de +-2%. Si pagaste de mas queda como saldo a favor. Si pagaste de menos te pedimos completar la diferencia.",
-    },
   ];
 
   return (
