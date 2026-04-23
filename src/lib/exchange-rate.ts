@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 
-const BCV_API_URL = "https://pydolarve.org/api/v1/dollar?page=bcv";
+const DOLAR_OFICIAL_URL = "https://ve.dolarapi.com/v1/dolares/oficial";
+const EURO_OFICIAL_URL = "https://ve.dolarapi.com/v1/euros/oficial";
 const CACHE_MINUTES = 30;
 
 export interface BcvRate {
@@ -11,12 +12,13 @@ export interface BcvRate {
   cached: boolean;
 }
 
-interface PyDolarVeResponse {
-  monitors?: {
-    usd?: { price?: number };
-    eur?: { price?: number };
-  };
-  datetime?: { date?: string; time?: string };
+interface DolarApiResponse {
+  moneda?: string;
+  fuente?: string;
+  promedio?: number;
+  compra?: number | null;
+  venta?: number | null;
+  fechaActualizacion?: string;
 }
 
 function toNumber(d: unknown): number {
@@ -48,18 +50,19 @@ export async function getCurrentBcvRate(): Promise<BcvRate> {
     };
   }
 
-  // Fetch from pydolarve.org
+  // Fetch from ve.dolarapi.com (BCV oficial)
   try {
-    const res = await fetch(BCV_API_URL, {
-      // Server-side fetch, no next cache
-      cache: "no-store",
-      signal: AbortSignal.timeout(10_000),
-    });
-    if (!res.ok) throw new Error(`pydolarve HTTP ${res.status}`);
+    const [usdRes, eurRes] = await Promise.all([
+      fetch(DOLAR_OFICIAL_URL, { cache: "no-store", signal: AbortSignal.timeout(10_000) }),
+      fetch(EURO_OFICIAL_URL, { cache: "no-store", signal: AbortSignal.timeout(10_000) }),
+    ]);
+    if (!usdRes.ok) throw new Error(`dolarapi USD HTTP ${usdRes.status}`);
+    if (!eurRes.ok) throw new Error(`dolarapi EUR HTTP ${eurRes.status}`);
 
-    const data: PyDolarVeResponse = await res.json();
-    const usd = data?.monitors?.usd?.price ?? 0;
-    const eur = data?.monitors?.eur?.price ?? 0;
+    const usdData: DolarApiResponse = await usdRes.json();
+    const eurData: DolarApiResponse = await eurRes.json();
+    const usd = Number(usdData?.promedio ?? 0);
+    const eur = Number(eurData?.promedio ?? 0);
 
     if (!usd || !eur) throw new Error("Incomplete rate data");
 
@@ -68,7 +71,7 @@ export async function getCurrentBcvRate(): Promise<BcvRate> {
         source: "BCV",
         usdRate: usd,
         eurRate: eur,
-        rawData: data as unknown as object,
+        rawData: { usd: usdData, eur: eurData } as unknown as object,
       },
     });
 
