@@ -29,6 +29,10 @@ model User {
   privacidadAceptada        Boolean   @default(false)
   privacidadFechaAceptacion DateTime?
   userAgent                 String?   @db.VarChar(500)
+
+  // Welcome offer tracking
+  ofertaBienvenidaUsada Boolean   @default(false)
+  fechaPrimeraCompra    DateTime?
   role          Role      @default(PARTICIPANT)
   credits       Int       @default(0)
   createdAt     DateTime  @default(now())
@@ -426,16 +430,18 @@ model AdminLog {
 }
 
 model Package {
-  id             String   @id @default(cuid())
-  code           String   @unique @db.VarChar(20)
-  name           String   @db.VarChar(50)
-  description    String?  @db.VarChar(200)
-  priceUsd       Decimal  @db.Decimal(10, 2)
-  quinielasCount Int
-  sortOrder      Int      @default(0)
-  active         Boolean  @default(true)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id                    String   @id @default(cuid())
+  code                  String   @unique @db.VarChar(20)
+  name                  String   @db.VarChar(50)
+  description           String?  @db.VarChar(200)
+  priceUsd              Decimal  @db.Decimal(10, 2)
+  quinielasCount        Int
+  bonusQuinielasOferta  Int      @default(0)
+  badge                 String?  @db.VarChar(30)
+  sortOrder             Int      @default(0)
+  active                Boolean  @default(true)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
 
   paymentReports PaymentReport[]
 

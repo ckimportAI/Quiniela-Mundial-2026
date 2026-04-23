@@ -15,13 +15,26 @@ export const TERMS_LAST_UPDATE = "2026-04-23";
 export const CONTACT_EMAIL = "quinielapanas@gmail.com";
 export const ENTRY_FEE_USD = 12;
 
-// Launch 2x1 promo
-export const PROMO_2X1_START = new Date("2026-04-23T00:00:00-04:00"); // VET
-export const PROMO_2X1_END = new Date("2026-06-04T23:59:59-04:00");
-export const PROMO_2X1_MULTIPLIER = 2;
+// Welcome offer (Oferta de Bienvenida Escalonada)
+// Bonus per package is defined on Package.bonusQuinielasOferta
+export const OFERTA_BIENVENIDA_START = new Date("2026-04-23T00:00:00-04:00"); // VET
+export const OFERTA_BIENVENIDA_END = new Date("2026-06-04T23:59:59-04:00");
 
-export function isPromo2x1Active(at: Date = new Date()): boolean {
-  return at >= PROMO_2X1_START && at <= PROMO_2X1_END;
+export function isOfertaBienvenidaActive(at: Date = new Date()): boolean {
+  return at >= OFERTA_BIENVENIDA_START && at <= OFERTA_BIENVENIDA_END;
+}
+
+// System deadlines (Venezuela time UTC-4)
+export const FIN_COMPRA_PAQUETES = new Date("2026-06-11T17:00:00-04:00");
+export const FIN_CREAR_QUINIELAS = new Date("2026-06-11T17:00:00-04:00");
+export const PRIMER_PARTIDO = new Date("2026-06-11T22:00:00-04:00");
+
+export function puedeComprarPaquete(at: Date = new Date()): boolean {
+  return at <= FIN_COMPRA_PAQUETES;
+}
+
+export function puedeCrearQuiniela(at: Date = new Date()): boolean {
+  return at <= FIN_CREAR_QUINIELAS;
 }
 
 // Pago Movil (Venezuela)

@@ -3,7 +3,10 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { paymentReportSchema } from "@/lib/validations";
-import { isPromo2x1Active, PROMO_2X1_MULTIPLIER } from "@/lib/constants";
+import {
+  isOfertaBienvenidaActive,
+  puedeComprarPaquete,
+} from "@/lib/constants";
 
 // GET: User's payment history
 export async function GET() {
@@ -17,7 +20,6 @@ export async function GET() {
     orderBy: { createdAt: "desc" },
   });
 
-  // Also return current credits
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
     select: { credits: true },
@@ -33,6 +35,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
 
+  // Enforce purchase deadline
+  if (!puedeComprarPaquete()) {
+    return NextResponse.json(
+      { error: "El periodo de compra de paquetes ha cerrado" },
+      { status: 403 }
+    );
+  }
+
   const body = await request.json();
   const parsed = paymentReportSchema.safeParse(body);
 
@@ -43,7 +53,6 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Resolve package if packageId provided
   let credits = parsed.data.credits ?? 0;
   let promoApplied = false;
 
@@ -57,10 +66,34 @@ export async function POST(request: NextRequest) {
         { status: 404 }
       );
     }
-    promoApplied = isPromo2x1Active();
-    credits = promoApplied
-      ? pkg.quinielasCount * PROMO_2X1_MULTIPLIER
-      : pkg.quinielasCount;
+
+    // Base quinielas from package
+    credits = pkg.quinielasCount;
+
+    // Welcome offer: escalonado (bonus per package) if offer active AND user hasn't used it
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { ofertaBienvenidaUsada: true },
+    });
+
+    if (
+      isOfertaBienvenidaActive() &&
+      user &&
+      !user.ofertaBienvenidaUsada &&
+      pkg.bonusQuinielasOferta > 0
+    ) {
+      credits = pkg.quinielasCount + pkg.bonusQuinielasOferta;
+      promoApplied = true;
+
+      // Mark user as having used the welcome offer (locks bonus on future reports)
+      await prisma.user.update({
+        where: { id: session.user.id },
+        data: {
+          ofertaBienvenidaUsada: true,
+          fechaPrimeraCompra: new Date(),
+        },
+      });
+    }
   }
 
   const payment = await prisma.paymentReport.create({

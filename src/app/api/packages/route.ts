@@ -1,44 +1,77 @@
 import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import {
-  isPromo2x1Active,
-  PROMO_2X1_START,
-  PROMO_2X1_END,
-  PROMO_2X1_MULTIPLIER,
+  isOfertaBienvenidaActive,
+  OFERTA_BIENVENIDA_START,
+  OFERTA_BIENVENIDA_END,
+  puedeComprarPaquete,
+  FIN_COMPRA_PAQUETES,
 } from "@/lib/constants";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
+  const session = await getServerSession(authOptions);
+
   const packages = await prisma.package.findMany({
     where: { active: true },
     orderBy: { sortOrder: "asc" },
   });
 
-  const promoActive = isPromo2x1Active();
+  // Check user state for personalized bonus eligibility
+  let userHasUsedOffer = false;
+  if (session?.user?.id) {
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { ofertaBienvenidaUsada: true },
+    });
+    userHasUsedOffer = user?.ofertaBienvenidaUsada ?? false;
+  }
+
+  const offerActive = isOfertaBienvenidaActive();
+  // User can benefit only if: offer is active AND user has NOT used it yet
+  const bonusAvailableForUser = offerActive && !userHasUsedOffer;
+  const canPurchase = puedeComprarPaquete();
+
+  const basePricePerQuiniela = 12; // Individual price as reference
 
   return NextResponse.json({
-    packages: packages.map((p) => ({
-      id: p.id,
-      code: p.code,
-      name: p.name,
-      description: p.description,
-      priceUsd: Number(p.priceUsd),
-      quinielasCount: p.quinielasCount,
-      // With promo, user gets N * multiplier quinielas
-      effectiveQuinielas: promoActive
-        ? p.quinielasCount * PROMO_2X1_MULTIPLIER
-        : p.quinielasCount,
-      pricePerQuiniela: promoActive
-        ? Number(p.priceUsd) / (p.quinielasCount * PROMO_2X1_MULTIPLIER)
-        : Number(p.priceUsd) / p.quinielasCount,
-    })),
-    promo: {
-      active: promoActive,
-      name: "2x1 Lanzamiento",
-      startsAt: PROMO_2X1_START.toISOString(),
-      endsAt: PROMO_2X1_END.toISOString(),
-      multiplier: PROMO_2X1_MULTIPLIER,
+    packages: packages.map((p) => {
+      const effectiveQuinielas = bonusAvailableForUser
+        ? p.quinielasCount + p.bonusQuinielasOferta
+        : p.quinielasCount;
+      const pricePerQuiniela = Number(p.priceUsd) / effectiveQuinielas;
+      const savingsVsIndividual =
+        basePricePerQuiniela * effectiveQuinielas - Number(p.priceUsd);
+
+      return {
+        id: p.id,
+        code: p.code,
+        name: p.name,
+        description: p.description,
+        priceUsd: Number(p.priceUsd),
+        quinielasCount: p.quinielasCount,
+        bonusQuinielasOferta: p.bonusQuinielasOferta,
+        effectiveQuinielas,
+        pricePerQuiniela,
+        savingsVsIndividual: Math.max(0, savingsVsIndividual),
+        badge: p.badge,
+      };
+    }),
+    offer: {
+      active: offerActive,
+      availableForUser: bonusAvailableForUser,
+      userHasUsedOffer,
+      code: "bienvenida_lanzamiento",
+      name: "Oferta de Bienvenida Escalonada",
+      startsAt: OFERTA_BIENVENIDA_START.toISOString(),
+      endsAt: OFERTA_BIENVENIDA_END.toISOString(),
+    },
+    purchase: {
+      allowed: canPurchase,
+      deadline: FIN_COMPRA_PAQUETES.toISOString(),
     },
   });
 }

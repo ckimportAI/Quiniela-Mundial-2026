@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { puedeCrearQuiniela } from "@/lib/constants";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -37,6 +38,14 @@ export async function POST() {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
 
+  // Enforce creation deadline
+  if (!puedeCrearQuiniela()) {
+    return NextResponse.json(
+      { error: "Ya no se pueden crear quinielas. El periodo de creacion ha cerrado." },
+      { status: 403 }
+    );
+  }
+
   // Get user info
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
@@ -52,7 +61,7 @@ export async function POST() {
 
   if (user.credits < 1) {
     return NextResponse.json(
-      { error: "No tienes creditos disponibles. Recarga en /recargas" },
+      { error: "No tienes quinielas disponibles. Compra un paquete en /paquetes" },
       { status: 402 }
     );
   }

@@ -40,12 +40,18 @@ interface PackageData {
   effectiveQuinielas: number;
 }
 
-interface PromoData {
+interface OfferData {
   active: boolean;
+  availableForUser: boolean;
+  userHasUsedOffer: boolean;
+  code: string;
   name: string;
   startsAt: string;
   endsAt: string;
-  multiplier: number;
+}
+
+interface PackageDataExtended extends PackageData {
+  bonusQuinielasOferta: number;
 }
 
 const PAYMENT_METHODS = [
@@ -84,8 +90,8 @@ function RecargasContent() {
   const router = useRouter();
   const packageId = searchParams.get("pkg");
 
-  const [pkg, setPkg] = useState<PackageData | null>(null);
-  const [promo, setPromo] = useState<PromoData | null>(null);
+  const [pkg, setPkg] = useState<PackageDataExtended | null>(null);
+  const [offer, setOffer] = useState<OfferData | null>(null);
   const [payments, setPayments] = useState<PaymentData[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -100,10 +106,10 @@ function RecargasContent() {
     fetch("/api/packages")
       .then((r) => r.json())
       .then((data) => {
-        setPromo(data.promo);
+        setOffer(data.offer);
         if (packageId) {
           const found = data.packages.find(
-            (p: PackageData) => p.id === packageId
+            (p: PackageDataExtended) => p.id === packageId
           );
           setPkg(found ?? null);
         }
@@ -221,25 +227,23 @@ function RecargasContent() {
         <CardContent className="p-6">
           <div className="flex items-start justify-between gap-4 flex-wrap">
             <div>
-              <div className="flex items-center gap-2 mb-1">
+              <div className="flex items-center gap-2 mb-1 flex-wrap">
                 <h2 className="text-xl font-bold">{pkg.name}</h2>
-                {promo?.active && (
+                {offer?.availableForUser && pkg.bonusQuinielasOferta > 0 && (
                   <Badge className="bg-gradient-to-r from-yellow-400 to-orange-400 text-black">
                     <Sparkles className="h-3 w-3 mr-1" />
-                    2x1
+                    +{pkg.bonusQuinielasOferta} GRATIS
                   </Badge>
                 )}
               </div>
               <p className="text-sm text-muted-foreground">
-                {promo?.active ? (
+                {offer?.availableForUser && pkg.bonusQuinielasOferta > 0 ? (
                   <>
-                    <span className="line-through mr-1">
-                      {pkg.quinielasCount} quinielas
-                    </span>
+                    {pkg.quinielasCount} quinielas + {pkg.bonusQuinielasOferta}{" "}
+                    bonus ={" "}
                     <strong className="text-green-600">
                       {pkg.effectiveQuinielas} quinielas
-                    </strong>{" "}
-                    con 2x1
+                    </strong>
                   </>
                 ) : (
                   <>{pkg.quinielasCount} quinielas</>
@@ -385,7 +389,7 @@ function RecargasContent() {
                       </span>
                       {p.promoApplied && (
                         <Badge className="bg-gradient-to-r from-yellow-400 to-orange-400 text-black text-[10px]">
-                          2x1
+                          Bonus bienvenida
                         </Badge>
                       )}
                       {statusBadge(p.status)}

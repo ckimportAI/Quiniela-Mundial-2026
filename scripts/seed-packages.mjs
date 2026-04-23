@@ -11,25 +11,31 @@ const packages = [
   {
     code: "INDIVIDUAL",
     name: "Individual",
-    description: "1 quiniela",
+    description: "Una quiniela para participar",
     priceUsd: 12,
     quinielasCount: 1,
+    bonusQuinielasOferta: 1, // +1 during welcome offer (total: 2)
+    badge: null,
     sortOrder: 1,
   },
   {
     code: "AMIGOS",
     name: "Amigos",
-    description: "3 quinielas ($10 c/u)",
+    description: "3 quinielas - perfecto para amigos",
     priceUsd: 30,
     quinielasCount: 3,
+    bonusQuinielasOferta: 1, // +1 during welcome offer (total: 4)
+    badge: "MAS POPULAR",
     sortOrder: 2,
   },
   {
     code: "FAMILIA",
     name: "Familia",
-    description: "5 quinielas ($8 c/u)",
+    description: "5 quinielas - mejor valor",
     priceUsd: 40,
     quinielasCount: 5,
+    bonusQuinielasOferta: 2, // +2 during welcome offer (total: 7)
+    badge: "MEJOR VALOR",
     sortOrder: 3,
   },
 ];
@@ -43,27 +49,29 @@ for (const p of packages) {
   );
   if (existing.rows.length > 0) {
     await client.query(
-      `UPDATE packages SET name = $1, description = $2, "priceUsd" = $3, "quinielasCount" = $4, "sortOrder" = $5, active = true, "updatedAt" = NOW() WHERE code = $6`,
-      [p.name, p.description, p.priceUsd, p.quinielasCount, p.sortOrder, p.code]
+      `UPDATE packages SET name = $1, description = $2, "priceUsd" = $3, "quinielasCount" = $4, "bonusQuinielasOferta" = $5, badge = $6, "sortOrder" = $7, active = true, "updatedAt" = NOW() WHERE code = $8`,
+      [p.name, p.description, p.priceUsd, p.quinielasCount, p.bonusQuinielasOferta, p.badge, p.sortOrder, p.code]
     );
     console.log(`Updated: ${p.code}`);
   } else {
     await client.query(
-      `INSERT INTO packages (id, code, name, description, "priceUsd", "quinielasCount", "sortOrder", active, "createdAt", "updatedAt")
-       VALUES (gen_random_uuid()::text, $1, $2, $3, $4, $5, $6, true, NOW(), NOW())`,
-      [p.code, p.name, p.description, p.priceUsd, p.quinielasCount, p.sortOrder]
+      `INSERT INTO packages (id, code, name, description, "priceUsd", "quinielasCount", "bonusQuinielasOferta", badge, "sortOrder", active, "createdAt", "updatedAt")
+       VALUES (gen_random_uuid()::text, $1, $2, $3, $4, $5, $6, $7, $8, true, NOW(), NOW())`,
+      [p.code, p.name, p.description, p.priceUsd, p.quinielasCount, p.bonusQuinielasOferta, p.badge, p.sortOrder]
     );
     console.log(`Inserted: ${p.code}`);
   }
 }
 
 const all = await client.query(
-  `SELECT code, name, "priceUsd", "quinielasCount" FROM packages ORDER BY "sortOrder"`
+  `SELECT code, name, "priceUsd", "quinielasCount", "bonusQuinielasOferta", badge FROM packages ORDER BY "sortOrder"`
 );
 console.log("\nAll packages:");
 for (const row of all.rows) {
+  const bonus = row.bonusQuinielasOferta > 0 ? ` +${row.bonusQuinielasOferta} bonus` : "";
+  const badge = row.badge ? ` [${row.badge}]` : "";
   console.log(
-    `  ${row.code}: ${row.name} - $${row.priceUsd} (${row.quinielasCount} quinielas)`
+    `  ${row.code}: ${row.name} - $${row.priceUsd} (${row.quinielasCount} quinielas${bonus})${badge}`
   );
 }
 

@@ -12,8 +12,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { TOURNAMENT_START_DATE } from "@/lib/constants";
-import { Trophy, Target, Star, Users, BarChart3, Zap, Sparkles } from "lucide-react";
-import { isPromo2x1Active, PROMO_2X1_END } from "@/lib/constants";
+import { Trophy, Target, Star, Users, BarChart3, Zap, Gift } from "lucide-react";
+import { isOfertaBienvenidaActive, OFERTA_BIENVENIDA_END } from "@/lib/constants";
 
 function useCountdown(targetDate: Date) {
   const [timeLeft, setTimeLeft] = useState(getTimeLeft(targetDate));
@@ -117,26 +117,26 @@ export default function Home() {
     { icon: BarChart3, value: stats.predictions, label: "Predicciones" },
   ];
 
-  const promoActive = isPromo2x1Active();
-  const promoEndStr = PROMO_2X1_END.toLocaleDateString("es-VE", {
+  const promoActive = isOfertaBienvenidaActive();
+  const promoEndStr = OFERTA_BIENVENIDA_END.toLocaleDateString("es-VE", {
     day: "numeric",
     month: "long",
   });
 
   return (
     <div className="flex flex-col items-center gap-8">
-      {/* Promo banner 2x1 */}
+      {/* Welcome offer banner */}
       {promoActive && (
         <Link
           href="/paquetes"
           className="w-full rounded-xl bg-gradient-to-r from-yellow-400 via-orange-400 to-pink-500 p-4 text-center text-white shadow hover:shadow-lg transition-shadow"
         >
           <div className="flex items-center justify-center gap-2 flex-wrap">
-            <Sparkles className="h-5 w-5" />
-            <span className="font-bold">OFERTA 2x1 DE LANZAMIENTO</span>
+            <Gift className="h-5 w-5" />
+            <span className="font-bold">OFERTA DE BIENVENIDA</span>
             <span className="hidden sm:inline">-</span>
             <span className="text-sm">
-              Recibe el DOBLE de quinielas hasta el {promoEndStr}
+              Quinielas extra GRATIS hasta el {promoEndStr}
             </span>
           </div>
         </Link>
