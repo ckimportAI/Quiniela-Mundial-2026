@@ -117,9 +117,9 @@ export default function Home() {
   ];
 
   return (
-    <div className="flex flex-col items-center -mt-6">
-      {/* Hero Section */}
-      <section className="gradient-hero w-screen relative -mx-[calc((100vw-100%)/2)] px-4 py-16 sm:py-24 flex flex-col items-center text-center">
+    <div className="flex flex-col items-center -mx-4 -mt-6">
+      {/* Hero Section - full bleed via negative margin from container */}
+      <section className="gradient-hero w-full px-4 py-16 sm:py-24 flex flex-col items-center text-center">
         <div className="animate-pulse-glow text-5xl sm:text-6xl mb-6">
           ⚽
         </div>
