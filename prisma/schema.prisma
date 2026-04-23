@@ -366,6 +366,12 @@ model PaymentReport {
   promoApplied      Boolean  @default(false)
   quinielasGranted  Int      @default(0)
 
+  // Bs payment tracking (captured from OCR when available)
+  amountBs      Decimal?  @db.Decimal(14, 2)
+  paymentDate   DateTime?
+  bcvRateUsd    Decimal?  @db.Decimal(14, 4)
+  bcvRateEur    Decimal?  @db.Decimal(14, 4)
+
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
@@ -446,4 +452,16 @@ model Package {
   paymentReports PaymentReport[]
 
   @@map("packages")
+}
+
+model ExchangeRate {
+  id        String   @id @default(cuid())
+  source    String   @default("BCV") @db.VarChar(20)
+  usdRate   Decimal  @db.Decimal(14, 4)
+  eurRate   Decimal  @db.Decimal(14, 4)
+  fetchedAt DateTime @default(now())
+  rawData   Json?
+
+  @@index([fetchedAt])
+  @@map("exchange_rates")
 }

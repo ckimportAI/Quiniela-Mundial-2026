@@ -118,6 +118,22 @@ function RecargasContent() {
     destinationPhone: string | null;
   } | null>(null);
 
+  // BCV exchange rate
+  const [rate, setRate] = useState<{
+    usd: number;
+    eur: number;
+    fetchedAt: string;
+    source: string;
+  } | null>(null);
+  const [rateError, setRateError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/exchange-rate")
+      .then((r) => r.ok ? r.json() : Promise.reject(r))
+      .then(setRate)
+      .catch(() => setRateError("No se pudo cargar la tasa BCV"));
+  }, []);
+
   // Load packages list to resolve current selection
   useEffect(() => {
     fetch("/api/packages")
@@ -220,12 +236,25 @@ function RecargasContent() {
     setSubmitError(null);
 
     try {
+      // Build payment date from OCR if present (YYYY-MM-DD -> ISO)
+      let paymentDateIso: string | undefined;
+      if (ocrData?.date) {
+        try {
+          const d = new Date(ocrData.date + "T12:00:00Z");
+          if (!isNaN(d.getTime())) paymentDateIso = d.toISOString();
+        } catch {}
+      }
+
       const res = await fetch("/api/payments", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           packageId: pkg.id,
           amount: pkg.priceUsd,
+          amountBs: ocrData?.amountBs ?? undefined,
+          paymentDate: paymentDateIso,
+          bcvRateUsd: rate?.usd,
+          bcvRateEur: rate?.eur,
           method,
           reference,
           notes: notes || undefined,
@@ -335,7 +364,7 @@ function RecargasContent() {
         </CardContent>
       </Card>
 
-      {/* Pago Movil Info */}
+      {/* Pago Movil Info + Bs amount */}
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">Datos para pagar</CardTitle>
@@ -344,6 +373,53 @@ function RecargasContent() {
           </p>
         </CardHeader>
         <CardContent className="space-y-3">
+          {/* Bs amount highlight */}
+          {rate && (
+            <div className="rounded-lg border-2 border-primary bg-primary/5 p-4 text-center">
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                Monto a depositar
+              </p>
+              <p className="text-3xl font-extrabold text-primary tabular-nums mt-1">
+                Bs. {(pkg.priceUsd * rate.usd).toLocaleString("es-VE", {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}
+              </p>
+              <p className="text-xs text-muted-foreground mt-2">
+                ${pkg.priceUsd} USD &times; {rate.usd.toLocaleString("es-VE", { maximumFractionDigits: 4 })} Bs/$ (tasa BCV)
+              </p>
+              <div className="mt-3 flex items-center justify-center gap-1">
+                <CopyBtn text={(pkg.priceUsd * rate.usd).toFixed(2)} />
+              </div>
+            </div>
+          )}
+          {rateError && (
+            <div className="rounded-lg bg-yellow-50 border border-yellow-200 p-3 text-xs text-yellow-800">
+              {rateError}. Consulta el monto por WhatsApp antes de pagar.
+            </div>
+          )}
+
+          {/* Rate info */}
+          {rate && (
+            <div className="rounded-lg border bg-muted/40 p-3 text-xs space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Tasa USD BCV:</span>
+                <span className="font-mono">
+                  {rate.usd.toLocaleString("es-VE", { maximumFractionDigits: 4 })} Bs/$
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Tasa Euro BCV:</span>
+                <span className="font-mono">
+                  {rate.eur.toLocaleString("es-VE", { maximumFractionDigits: 4 })} Bs/€
+                </span>
+              </div>
+              <p className="text-[10px] text-muted-foreground pt-1">
+                Actualizada: {new Date(rate.fetchedAt).toLocaleString("es-VE")}
+              </p>
+            </div>
+          )}
+
           <div className="rounded-lg border bg-muted/40 p-4">
             <p className="text-sm font-semibold mb-2">Pago Movil (Bs)</p>
             <div className="space-y-1 text-sm">
@@ -366,9 +442,6 @@ function RecargasContent() {
                 <span className="font-mono">{PAGO_MOVIL.bank}</span>
               </div>
             </div>
-            <p className="text-xs text-muted-foreground mt-3">
-              El monto en Bs se calcula con la tasa Euro BCV del dia.
-            </p>
           </div>
           <p className="text-xs text-muted-foreground">
             Tambien aceptamos Zelle y Binance Pay (consulta por WhatsApp).
@@ -457,34 +530,82 @@ function RecargasContent() {
                   </div>
                 )}
 
-                {ocrData && !ocrLoading && (
-                  <div className="rounded-lg bg-green-50 border border-green-200 p-3 text-sm text-green-800 space-y-1">
-                    <div className="flex items-center gap-1 font-medium">
-                      <Check className="h-4 w-4" />
-                      Datos extraidos (verifica y corrige si es necesario)
+                {ocrData && !ocrLoading && (() => {
+                  const expectedBs =
+                    rate && pkg ? pkg.priceUsd * rate.usd : null;
+                  let amountCheck: "ok" | "low" | "high" | "unknown" = "unknown";
+                  let diffPct = 0;
+                  if (expectedBs && ocrData.amountBs != null) {
+                    diffPct =
+                      (ocrData.amountBs - expectedBs) / expectedBs;
+                    if (Math.abs(diffPct) <= 0.02) amountCheck = "ok";
+                    else if (diffPct < 0) amountCheck = "low";
+                    else amountCheck = "high";
+                  }
+
+                  const bgClass =
+                    amountCheck === "low"
+                      ? "bg-red-50 border-red-200 text-red-800"
+                      : amountCheck === "high"
+                        ? "bg-blue-50 border-blue-200 text-blue-800"
+                        : "bg-green-50 border-green-200 text-green-800";
+
+                  return (
+                    <div className={`rounded-lg border p-3 text-sm space-y-1 ${bgClass}`}>
+                      <div className="flex items-center gap-1 font-medium">
+                        <Check className="h-4 w-4" />
+                        Datos extraidos (verifica y corrige si es necesario)
+                      </div>
+                      <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs mt-2">
+                        {ocrData.method && (
+                          <><span className="opacity-70">Metodo:</span><span>{ocrData.method}</span></>
+                        )}
+                        {ocrData.reference && (
+                          <><span className="opacity-70">Ref:</span><span className="font-mono">{ocrData.reference}</span></>
+                        )}
+                        {ocrData.amountBs != null && (
+                          <><span className="opacity-70">Monto Bs:</span>
+                          <span className="font-medium">{ocrData.amountBs.toLocaleString("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></>
+                        )}
+                        {ocrData.amountUsd != null && (
+                          <><span className="opacity-70">Monto USD:</span><span>${ocrData.amountUsd}</span></>
+                        )}
+                        {ocrData.date && (
+                          <><span className="opacity-70">Fecha:</span><span>{ocrData.date}</span></>
+                        )}
+                        {ocrData.destinationPhone && (
+                          <><span className="opacity-70">Tel destino:</span><span className="font-mono">{ocrData.destinationPhone}</span></>
+                        )}
+                      </div>
+
+                      {expectedBs != null && ocrData.amountBs != null && (
+                        <div className="mt-2 pt-2 border-t text-xs">
+                          <p>
+                            Esperado:{" "}
+                            <strong>
+                              Bs. {expectedBs.toLocaleString("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </strong>
+                          </p>
+                          {amountCheck === "ok" && (
+                            <p className="font-medium">
+                              Monto OK (diferencia {(diffPct * 100).toFixed(2)}%)
+                            </p>
+                          )}
+                          {amountCheck === "low" && (
+                            <p className="font-medium">
+                              Pagaste {Math.abs(diffPct * 100).toFixed(2)}% menos de lo esperado. Completa la diferencia antes de enviar.
+                            </p>
+                          )}
+                          {amountCheck === "high" && (
+                            <p className="font-medium">
+                              Pagaste {(diffPct * 100).toFixed(2)}% mas. El excedente quedara como saldo a favor.
+                            </p>
+                          )}
+                        </div>
+                      )}
                     </div>
-                    <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs mt-2">
-                      {ocrData.method && (
-                        <><span className="text-muted-foreground">Metodo:</span><span>{ocrData.method}</span></>
-                      )}
-                      {ocrData.reference && (
-                        <><span className="text-muted-foreground">Ref:</span><span className="font-mono">{ocrData.reference}</span></>
-                      )}
-                      {ocrData.amountBs != null && (
-                        <><span className="text-muted-foreground">Monto Bs:</span><span>{ocrData.amountBs.toLocaleString("es-VE")}</span></>
-                      )}
-                      {ocrData.amountUsd != null && (
-                        <><span className="text-muted-foreground">Monto USD:</span><span>${ocrData.amountUsd}</span></>
-                      )}
-                      {ocrData.date && (
-                        <><span className="text-muted-foreground">Fecha:</span><span>{ocrData.date}</span></>
-                      )}
-                      {ocrData.destinationPhone && (
-                        <><span className="text-muted-foreground">Tel destino:</span><span className="font-mono">{ocrData.destinationPhone}</span></>
-                      )}
-                    </div>
-                  </div>
-                )}
+                  );
+                })()}
               </div>
             )}
           </div>

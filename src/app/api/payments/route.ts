@@ -53,14 +53,29 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Duplicate detection: same reference + method already reported (and not rejected)
+  // Duplicate detection: reference + method (+ amountBs + paymentDate if provided)
+  // already reported (and not rejected)
+  const dupFilters: Array<Record<string, unknown>> = [
+    { reference: parsed.data.reference, method: parsed.data.method },
+  ];
+  // If OCR captured amountBs + date, also check that combination globally
+  if (parsed.data.amountBs && parsed.data.paymentDate) {
+    const day = new Date(parsed.data.paymentDate);
+    const dayStart = new Date(day.getFullYear(), day.getMonth(), day.getDate());
+    const dayEnd = new Date(day.getFullYear(), day.getMonth(), day.getDate() + 1);
+    dupFilters.push({
+      amountBs: parsed.data.amountBs,
+      method: parsed.data.method,
+      paymentDate: { gte: dayStart, lt: dayEnd },
+    });
+  }
+
   const existingDuplicate = await prisma.paymentReport.findFirst({
     where: {
-      reference: parsed.data.reference,
-      method: parsed.data.method,
+      OR: dupFilters,
       status: { in: ["PENDING", "APPROVED"] },
     },
-    select: { id: true, userId: true },
+    select: { id: true, userId: true, reference: true },
   });
 
   if (existingDuplicate) {
@@ -124,6 +139,10 @@ export async function POST(request: NextRequest) {
       packageId: parsed.data.packageId ?? null,
       credits,
       amount: parsed.data.amount,
+      amountBs: parsed.data.amountBs ?? null,
+      paymentDate: parsed.data.paymentDate ? new Date(parsed.data.paymentDate) : null,
+      bcvRateUsd: parsed.data.bcvRateUsd ?? null,
+      bcvRateEur: parsed.data.bcvRateEur ?? null,
       method: parsed.data.method,
       reference: parsed.data.reference,
       notes: parsed.data.notes,
