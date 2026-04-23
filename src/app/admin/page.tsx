@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { prisma } from "@/lib/prisma";
+import { SiteConfigPanel } from "@/components/admin/site-config-panel";
 
 export const dynamic = "force-dynamic";
 
@@ -72,6 +73,8 @@ export default async function AdminPage() {
           </CardContent>
         </Card>
       </div>
+
+      <SiteConfigPanel />
     </div>
   );
 }

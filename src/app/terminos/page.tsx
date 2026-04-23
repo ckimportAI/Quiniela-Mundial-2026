@@ -120,6 +120,26 @@ export default function TerminosPage() {
         <li>Segundo lugar: 28% del pool</li>
         <li>Tercer lugar: 17% del pool</li>
       </ul>
+
+      <h3 className="text-lg font-semibold mt-4">9.1.1 Reglas de Empate</h3>
+      <p>
+        Si dos o mas participantes empatan en puntos en cualquiera de los tres primeros puestos (primero, segundo o tercer lugar), el premio correspondiente a ese puesto se dividira <strong>equitativamente</strong> entre todos los empatados.
+      </p>
+      <p>Ejemplos:</p>
+      <ul className="list-disc pl-6 space-y-1">
+        <li>
+          Si 2 participantes empatan en el <strong>primer lugar</strong>, cada uno recibe 55% / 2 = 27.5% del pool. El segundo y tercer lugar reciben su premio normal (28% y 17%).
+        </li>
+        <li>
+          Si 3 participantes empatan en el <strong>segundo lugar</strong>, cada uno recibe 28% / 3 del pool. El primer y tercer lugar no se ven afectados.
+        </li>
+        <li>
+          Si 2 participantes empatan en el <strong>tercer lugar</strong>, cada uno recibe 17% / 2 = 8.5% del pool.
+        </li>
+      </ul>
+      <p>
+        No se aplicaran criterios adicionales de desempate: en caso de empate en puntos, el premio siempre se divide por igual entre los empatados.
+      </p>
       <h3 className="text-lg font-semibold mt-4">9.2 Entrega de Premios</h3>
       <ul className="list-disc pl-6 space-y-1">
         <li>Los premios se pagan en los 7 dias siguientes a la final del Mundial</li>

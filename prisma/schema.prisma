@@ -465,3 +465,12 @@ model ExchangeRate {
   @@index([fetchedAt])
   @@map("exchange_rates")
 }
+
+model SiteConfig {
+  key       String   @id @db.VarChar(50)
+  value     String   @db.Text
+  updatedAt DateTime @updatedAt
+  updatedBy String?
+
+  @@map("site_config")
+}

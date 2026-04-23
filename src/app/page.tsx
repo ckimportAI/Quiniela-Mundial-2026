@@ -19,6 +19,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { DeadlineBanner, OfferBanner } from "@/components/home/deadline-banner";
+import { PoolCard } from "@/components/home/pool-card";
 
 function useCountdown(targetDate: Date) {
   const [timeLeft, setTimeLeft] = useState(getTimeLeft(targetDate));
@@ -153,6 +154,9 @@ export default function Home() {
       {/* Contextual banner: welcome offer OR deadline reminder OR tournament */}
       <OfferBanner />
       <DeadlineBanner />
+
+      {/* Pool card (admin-gated) */}
+      <PoolCard />
 
       {/* Hero Section */}
       <section className="gradient-hero w-full rounded-2xl px-6 py-12 sm:py-16 flex flex-col items-center text-center">
