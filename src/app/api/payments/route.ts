@@ -105,6 +105,7 @@ export async function POST(request: NextRequest) {
       method: parsed.data.method,
       reference: parsed.data.reference,
       notes: parsed.data.notes,
+      proofUrl: parsed.data.proofUrl ?? null,
       promoApplied,
     },
   });

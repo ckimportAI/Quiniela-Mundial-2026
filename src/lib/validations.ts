@@ -23,6 +23,7 @@ export const paymentReportSchema = z.object({
   method: z.string().min(2, "Metodo requerido").max(50),
   reference: z.string().min(3, "Referencia requerida").max(100),
   notes: z.string().max(500).optional(),
+  proofUrl: z.string().max(300).optional(),
 }).refine((data) => !!data.packageId || !!data.credits, {
   message: "Debes indicar un paquete o cantidad de creditos",
 });

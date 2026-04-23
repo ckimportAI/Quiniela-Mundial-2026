@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Sparkles, Copy, Check } from "lucide-react";
+import { Sparkles, Copy, Check, Upload, X, Loader2 } from "lucide-react";
 
 interface PaymentData {
   id: string;
@@ -101,6 +101,22 @@ function RecargasContent() {
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
 
+  // Receipt upload + OCR state
+  const [proofUrl, setProofUrl] = useState<string | null>(null);
+  const [proofFilename, setProofFilename] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [ocrLoading, setOcrLoading] = useState(false);
+  const [ocrError, setOcrError] = useState<string | null>(null);
+  const [ocrData, setOcrData] = useState<{
+    method: string | null;
+    reference: string | null;
+    amountBs: number | null;
+    amountUsd: number | null;
+    date: string | null;
+    confidence: string | null;
+    destinationPhone: string | null;
+  } | null>(null);
+
   // Load packages list to resolve current selection
   useEffect(() => {
     fetch("/api/packages")
@@ -139,6 +155,61 @@ function RecargasContent() {
     }
   }, [packageId, router]);
 
+  const handleFileUpload = async (file: File) => {
+    setOcrError(null);
+    setOcrData(null);
+    setUploading(true);
+
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const uploadRes = await fetch("/api/upload/payment-proof", {
+        method: "POST",
+        body: fd,
+      });
+      if (!uploadRes.ok) {
+        const err = await uploadRes.json();
+        setOcrError(err.error ?? "Error al subir imagen");
+        return;
+      }
+      const uploadData = await uploadRes.json();
+      setProofUrl(uploadData.url);
+      setProofFilename(uploadData.filename);
+      setUploading(false);
+
+      // Run OCR
+      setOcrLoading(true);
+      const ocrRes = await fetch("/api/ocr/payment-proof", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ filename: uploadData.filename }),
+      });
+
+      if (!ocrRes.ok) {
+        const err = await ocrRes.json();
+        setOcrError(err.error ?? "No se pudo leer el comprobante. Completa manualmente.");
+        return;
+      }
+
+      const { data } = await ocrRes.json();
+      setOcrData(data);
+
+      // Pre-fill form fields from OCR
+      if (data.method && ["Pago Movil", "Zelle", "Binance Pay", "Transferencia bancaria"].includes(data.method)) {
+        setMethod(data.method);
+      }
+      if (data.reference) {
+        setReference(data.reference);
+      }
+    } catch (err) {
+      console.error(err);
+      setOcrError("Error al procesar el comprobante");
+    } finally {
+      setUploading(false);
+      setOcrLoading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!pkg) return;
@@ -156,6 +227,7 @@ function RecargasContent() {
           method,
           reference,
           notes: notes || undefined,
+          proofUrl: proofUrl || undefined,
         }),
       });
 
@@ -163,6 +235,9 @@ function RecargasContent() {
         setSuccess(true);
         setReference("");
         setNotes("");
+        setProofUrl(null);
+        setProofFilename(null);
+        setOcrData(null);
         fetchPayments();
       } else {
         const data = await res.json();
@@ -303,6 +378,9 @@ function RecargasContent() {
       <Card>
         <CardHeader>
           <CardTitle>Datos del pago</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Sube la foto del comprobante y el sistema extrae los datos automaticamente.
+          </p>
         </CardHeader>
         <CardContent>
           {success && (
@@ -311,6 +389,99 @@ function RecargasContent() {
               tus quinielas automaticamente al aprobar.
             </div>
           )}
+
+          {/* Receipt upload */}
+          <div className="mb-5 space-y-2">
+            <Label>Comprobante de pago</Label>
+            {!proofUrl ? (
+              <label className="flex flex-col items-center justify-center w-full h-40 rounded-lg border-2 border-dashed border-input hover:border-primary/50 cursor-pointer transition-colors bg-muted/20">
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
+                  className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) handleFileUpload(f);
+                  }}
+                  disabled={uploading || ocrLoading}
+                />
+                <Upload className="h-8 w-8 text-muted-foreground mb-2" />
+                <p className="text-sm font-medium">
+                  {uploading ? "Subiendo..." : "Haz clic o arrastra la imagen"}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  JPG, PNG o WEBP &middot; max 6 MB
+                </p>
+              </label>
+            ) : (
+              <div className="space-y-3">
+                <div className="relative rounded-lg overflow-hidden border bg-muted/20">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={proofUrl}
+                    alt="Comprobante"
+                    className="w-full max-h-80 object-contain"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setProofUrl(null);
+                      setProofFilename(null);
+                      setOcrData(null);
+                      setOcrError(null);
+                    }}
+                    className="absolute top-2 right-2 bg-black/60 text-white rounded-full p-1 hover:bg-black/80"
+                    aria-label="Quitar"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+
+                {ocrLoading && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Leyendo comprobante con IA...
+                  </div>
+                )}
+
+                {ocrError && (
+                  <div className="rounded-lg bg-yellow-50 border border-yellow-200 p-3 text-sm text-yellow-800">
+                    {ocrError}
+                  </div>
+                )}
+
+                {ocrData && !ocrLoading && (
+                  <div className="rounded-lg bg-green-50 border border-green-200 p-3 text-sm text-green-800 space-y-1">
+                    <div className="flex items-center gap-1 font-medium">
+                      <Check className="h-4 w-4" />
+                      Datos extraidos (verifica y corrige si es necesario)
+                    </div>
+                    <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs mt-2">
+                      {ocrData.method && (
+                        <><span className="text-muted-foreground">Metodo:</span><span>{ocrData.method}</span></>
+                      )}
+                      {ocrData.reference && (
+                        <><span className="text-muted-foreground">Ref:</span><span className="font-mono">{ocrData.reference}</span></>
+                      )}
+                      {ocrData.amountBs != null && (
+                        <><span className="text-muted-foreground">Monto Bs:</span><span>{ocrData.amountBs.toLocaleString("es-VE")}</span></>
+                      )}
+                      {ocrData.amountUsd != null && (
+                        <><span className="text-muted-foreground">Monto USD:</span><span>${ocrData.amountUsd}</span></>
+                      )}
+                      {ocrData.date && (
+                        <><span className="text-muted-foreground">Fecha:</span><span>{ocrData.date}</span></>
+                      )}
+                      {ocrData.destinationPhone && (
+                        <><span className="text-muted-foreground">Tel destino:</span><span className="font-mono">{ocrData.destinationPhone}</span></>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="method">Metodo de pago</Label>
