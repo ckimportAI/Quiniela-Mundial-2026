@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { prisma } from "@/lib/prisma";
 import { SiteConfigPanel } from "@/components/admin/site-config-panel";
+import { SyncResultsPanel } from "@/components/admin/sync-results-panel";
 import {
   DollarSign,
   Users,
@@ -378,13 +379,16 @@ export default async function AdminPage() {
         </div>
       </div>
 
-      {/* Site config toggle */}
+      {/* Live sync + Site config */}
       <div>
         <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
           <Settings className="h-4 w-4" />
-          Configuracion
+          Herramientas
         </h2>
-        <SiteConfigPanel />
+        <div className="grid gap-3 md:grid-cols-2">
+          <SyncResultsPanel />
+          <SiteConfigPanel />
+        </div>
       </div>
     </div>
   );
