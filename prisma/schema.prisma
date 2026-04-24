@@ -147,6 +147,7 @@ model Quiniela {
   id        String   @id @default(cuid())
   name      String
   userId    String
+  isTest    Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -156,6 +157,7 @@ model Quiniela {
   score                  QuinielaScore?
   subQuinielaMemberships SubQuinielaMember[]
 
+  @@index([isTest])
   @@map("quinielas")
 }
 

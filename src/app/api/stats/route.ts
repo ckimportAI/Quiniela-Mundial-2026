@@ -7,8 +7,8 @@ export async function GET() {
   try {
     const [users, quinielas, predictions] = await Promise.all([
       prisma.user.count(),
-      prisma.quiniela.count(),
-      prisma.prediction.count(),
+      prisma.quiniela.count({ where: { isTest: false } }),
+      prisma.prediction.count({ where: { quiniela: { isTest: false } } }),
     ]);
 
     return NextResponse.json({ users, quinielas, predictions });

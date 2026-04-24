@@ -376,6 +376,12 @@ export default async function AdminPage() {
             title="Ver Leaderboard"
             description="Tabla completa de posiciones."
           />
+          <ActionCard
+            href="/admin/beta"
+            icon={Gift}
+            title="Beta Testers"
+            description="Regala quinielas de prueba y limpia datos beta."
+          />
         </div>
       </div>
 
