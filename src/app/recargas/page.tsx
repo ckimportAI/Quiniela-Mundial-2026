@@ -127,6 +127,28 @@ function RecargasContent() {
   } | null>(null);
   const [rateError, setRateError] = useState<string | null>(null);
 
+  // Saldo a favor
+  const [saldo, setSaldo] = useState<{
+    totalUsd: number;
+    totalBs: number;
+    availableCount: number;
+  } | null>(null);
+
+  useEffect(() => {
+    fetch("/api/saldos")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (data) {
+          setSaldo({
+            totalUsd: data.totalUsd,
+            totalBs: data.totalBs,
+            availableCount: data.availableCount,
+          });
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   useEffect(() => {
     fetch("/api/exchange-rate")
       .then((r) => r.ok ? r.json() : Promise.reject(r))
@@ -334,6 +356,32 @@ function RecargasContent() {
           Reportar Pago
         </h1>
       </div>
+
+      {/* Saldo a favor banner */}
+      {saldo && saldo.totalUsd > 0 && (
+        <Card className="border-green-400 border-2 bg-green-50">
+          <CardContent className="p-4">
+            <div className="flex items-start justify-between gap-3 flex-wrap">
+              <div>
+                <p className="text-xs uppercase tracking-wide text-green-700 font-semibold">
+                  Tu saldo a favor
+                </p>
+                <p className="text-2xl font-extrabold text-green-700 tabular-nums mt-1">
+                  ${saldo.totalUsd.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{" "}
+                  USD
+                </p>
+                <p className="text-xs text-green-700/80 mt-1">
+                  {"\u2248 "}Bs. {saldo.totalBs.toLocaleString("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </p>
+              </div>
+              <div className="text-xs text-green-700/80 max-w-xs">
+                Tienes {saldo.availableCount} credito{saldo.availableCount !== 1 ? "s" : ""} de saldo por excedentes de pagos anteriores.
+                Contacta soporte para aplicarlo a esta compra.
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Package summary */}
       <Card className="border-primary border-2">

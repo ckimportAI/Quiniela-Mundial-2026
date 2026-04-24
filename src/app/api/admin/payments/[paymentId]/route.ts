@@ -102,6 +102,33 @@ export async function PATCH(
       );
     }
 
+    // Detect excess and create saldo a favor (only when Bs info is available)
+    const TOLERANCE = 0.02;
+    if (payment.amountBs && payment.bcvRateEur) {
+      const expectedBs =
+        Number(payment.amount) * Number(payment.bcvRateEur);
+      const actualBs = Number(payment.amountBs);
+      const diff = actualBs - expectedBs;
+      const pct = expectedBs > 0 ? Math.abs(diff) / expectedBs : 0;
+
+      if (diff > 0 && pct > TOLERANCE) {
+        const excessBs = diff;
+        const excessUsd = excessBs / Number(payment.bcvRateEur);
+        ops.push(
+          prisma.saldoFavor.create({
+            data: {
+              userId: payment.userId,
+              montoUsd: excessUsd,
+              montoBs: excessBs,
+              tasaEurBcv: payment.bcvRateEur,
+              origenPaymentId: payment.id,
+              notes: `Excedente de pago #${payment.id.slice(-8)} (${(pct * 100).toFixed(2)}%)`,
+            },
+          })
+        );
+      }
+    }
+
     const [updatedPayment] = await prisma.$transaction(ops);
 
     return NextResponse.json(updatedPayment);

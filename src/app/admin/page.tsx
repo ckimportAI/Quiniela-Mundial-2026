@@ -56,6 +56,7 @@ export default async function AdminPage() {
     welcomeOfferStats,
     welcomeOfferBonusSum,
     latestRate,
+    saldoAgg,
   ] = await Promise.all([
     prisma.paymentReport.groupBy({
       by: ["status"],
@@ -95,7 +96,16 @@ export default async function AdminPage() {
       WHERE pr."promoApplied" = true AND pr.status IN ('PENDING', 'APPROVED')
     `,
     prisma.exchangeRate.findFirst({ orderBy: { fetchedAt: "desc" } }),
+    prisma.saldoFavor.aggregate({
+      where: { isUsed: false },
+      _sum: { montoUsd: true, montoBs: true },
+      _count: { _all: true },
+    }),
   ]);
+
+  const saldoPendienteUsd = Number(saldoAgg._sum.montoUsd ?? 0);
+  const saldoPendienteBs = Number(saldoAgg._sum.montoBs ?? 0);
+  const saldoPendienteCount = saldoAgg._count._all;
 
   // Load package details for breakdown
   const packagesDetails = await prisma.package.findMany({
@@ -272,6 +282,41 @@ export default async function AdminPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Saldos a favor */}
+      {saldoPendienteCount > 0 && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Wallet className="h-4 w-4" />
+              Saldos a favor pendientes
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-3 gap-2 text-center">
+              <div className="rounded border p-2">
+                <p className="text-2xl font-bold">{saldoPendienteCount}</p>
+                <p className="text-xs text-muted-foreground">Saldos</p>
+              </div>
+              <div className="rounded border p-2">
+                <p className="text-2xl font-bold text-green-600">
+                  ${formatUsd(saldoPendienteUsd)}
+                </p>
+                <p className="text-xs text-muted-foreground">Total USD</p>
+              </div>
+              <div className="rounded border p-2">
+                <p className="text-2xl font-bold">
+                  Bs. {formatBs(saldoPendienteBs)}
+                </p>
+                <p className="text-xs text-muted-foreground">Total Bs</p>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground mt-3">
+              Excedentes de pagos que quedan a favor de usuarios para usarse en proximas compras.
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Exchange rate status */}
       {latestRate && eurRate && (

@@ -47,6 +47,7 @@ model User {
   paymentReports        PaymentReport[]
   createdSubQuinielas    SubQuiniela[]
   subQuinielaMemberships SubQuinielaMember[]
+  saldosFavor           SaldoFavor[]
 
   @@map("users")
 }
@@ -378,6 +379,9 @@ model PaymentReport {
   user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   package Package? @relation(fields: [packageId], references: [id], onDelete: SetNull)
 
+  saldosOriginados SaldoFavor[] @relation("OrigenSaldo")
+  saldosConsumidos SaldoFavor[] @relation("UsoSaldo")
+
   @@index([userId])
   @@index([status])
   @@map("payment_reports")
@@ -473,4 +477,26 @@ model SiteConfig {
   updatedBy String?
 
   @@map("site_config")
+}
+
+model SaldoFavor {
+  id              String   @id @default(cuid())
+  userId          String
+  montoUsd        Decimal  @db.Decimal(10, 2)
+  montoBs         Decimal  @db.Decimal(14, 2)
+  tasaEurBcv      Decimal  @db.Decimal(14, 4)
+  origenPaymentId String?
+  isUsed          Boolean  @default(false)
+  usedAt          DateTime?
+  usedInPaymentId String?
+  notes           String?  @db.VarChar(300)
+  createdAt       DateTime @default(now())
+
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  origenPayment PaymentReport? @relation("OrigenSaldo", fields: [origenPaymentId], references: [id], onDelete: SetNull)
+  usedInPayment PaymentReport? @relation("UsoSaldo", fields: [usedInPaymentId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([isUsed])
+  @@map("saldos_favor")
 }
