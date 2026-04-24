@@ -95,6 +95,16 @@ export const updateMemberQuinielaSchema = z.object({
   quinielaId: z.string().cuid("Quiniela requerida"),
 });
 
+export const signupSchema = z.object({
+  email: z.string().email("Email invalido").max(200),
+  password: z.string().min(8, "Minimo 8 caracteres").max(100),
+});
+
+export const loginCredentialsSchema = z.object({
+  email: z.string().email("Email invalido"),
+  password: z.string().min(1, "Contrasena requerida"),
+});
+
 export type NicknameInput = z.infer<typeof nicknameSchema>;
 export type PaymentReportInput = z.infer<typeof paymentReportSchema>;
 export type ReviewPaymentInput = z.infer<typeof reviewPaymentSchema>;

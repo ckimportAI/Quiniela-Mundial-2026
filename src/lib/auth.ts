@@ -1,15 +1,13 @@
 import { NextAuthOptions } from "next-auth";
-import { PrismaAdapter } from "@auth/prisma-adapter";
 import GoogleProvider from "next-auth/providers/google";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { prisma } from "@/lib/prisma";
+import bcrypt from "bcryptjs";
 
-const adapter = PrismaAdapter(prisma) as NextAuthOptions["adapter"];
+// We do NOT use PrismaAdapter because it's incompatible with CredentialsProvider
+// in NextAuth v4 under JWT strategy. We handle user creation ourselves in authorize().
 
 export const authOptions: NextAuthOptions = {
-  // Only use adapter for OAuth providers (Google)
-  // CredentialsProvider is incompatible with PrismaAdapter in NextAuth v4
-  ...(process.env.NODE_ENV !== "development" ? { adapter } : {}),
   session: {
     strategy: "jwt",
   },
@@ -21,10 +19,55 @@ export const authOptions: NextAuthOptions = {
       clientId: process.env.AUTH_GOOGLE_ID ?? "",
       clientSecret: process.env.AUTH_GOOGLE_SECRET ?? "",
     }),
-    // Dev-only credentials provider for testing without Google OAuth
+    // Email + password login (production)
+    CredentialsProvider({
+      id: "credentials-password",
+      name: "Email y Password",
+      credentials: {
+        email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" },
+      },
+      async authorize(credentials) {
+        if (!credentials?.email || !credentials?.password) return null;
+        const email = credentials.email.trim().toLowerCase();
+
+        try {
+          const user = await prisma.user.findUnique({
+            where: { email },
+            select: {
+              id: true,
+              email: true,
+              name: true,
+              image: true,
+              passwordHash: true,
+            },
+          });
+
+          if (!user || !user.passwordHash) return null;
+
+          const valid = await bcrypt.compare(
+            credentials.password,
+            user.passwordHash
+          );
+          if (!valid) return null;
+
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            image: user.image,
+          };
+        } catch (error) {
+          console.error("Password login error:", error);
+          return null;
+        }
+      },
+    }),
+    // Dev-only: login by email only (no password) for testing
     ...(process.env.NODE_ENV === "development"
       ? [
           CredentialsProvider({
+            id: "credentials",
             name: "Dev Login",
             credentials: {
               email: { label: "Email", type: "email" },
@@ -56,6 +99,25 @@ export const authOptions: NextAuthOptions = {
       : []),
   ],
   callbacks: {
+    async signIn({ user, account }) {
+      // Auto-create user on first Google login (since we don't use PrismaAdapter)
+      if (account?.provider === "google" && user.email) {
+        const email = user.email.toLowerCase();
+        await prisma.user.upsert({
+          where: { email },
+          update: {
+            name: user.name ?? undefined,
+            image: user.image ?? undefined,
+          },
+          create: {
+            email,
+            name: user.name ?? email.split("@")[0],
+            image: user.image ?? undefined,
+          },
+        });
+      }
+      return true;
+    },
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
