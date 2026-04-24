@@ -16,9 +16,8 @@ export const metadata = {
 };
 
 export default async function LeaderboardPage() {
-  // Fetch all non-test quinielas with their scores and prediction count
+  // Fetch all quinielas (including test quinielas during beta)
   const quinielas = await prisma.quiniela.findMany({
-    where: { isTest: false },
     include: {
       user: {
         select: { id: true, name: true, nickname: true, image: true },
