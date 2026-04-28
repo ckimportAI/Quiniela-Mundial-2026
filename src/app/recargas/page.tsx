@@ -127,27 +127,9 @@ function RecargasContent() {
   } | null>(null);
   const [rateError, setRateError] = useState<string | null>(null);
 
-  // Saldo a favor
-  const [saldo, setSaldo] = useState<{
-    totalUsd: number;
-    totalBs: number;
-    availableCount: number;
-  } | null>(null);
-
-  useEffect(() => {
-    fetch("/api/saldos")
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => {
-        if (data) {
-          setSaldo({
-            totalUsd: data.totalUsd,
-            totalBs: data.totalBs,
-            availableCount: data.availableCount,
-          });
-        }
-      })
-      .catch(() => {});
-  }, []);
+  // Saldo a favor (Bs)
+  const [saldoBs, setSaldoBs] = useState<number>(0);
+  const [useSaldo, setUseSaldo] = useState<boolean>(false);
 
   useEffect(() => {
     fetch("/api/exchange-rate")
@@ -177,6 +159,7 @@ function RecargasContent() {
       if (res.ok) {
         const data = await res.json();
         setPayments(data.payments);
+        setSaldoBs(Number(data.saldoBs ?? 0));
       }
     } finally {
       setLoading(false);
@@ -277,6 +260,9 @@ function RecargasContent() {
           paymentDate: paymentDateIso,
           bcvRateUsd: rate?.usd,
           bcvRateEur: rate?.eur,
+          useSaldoBs: useSaldo && rate
+            ? Math.min(saldoBs, pkg.priceUsd * rate.eur)
+            : undefined,
           method,
           reference,
           notes: notes || undefined,
@@ -357,31 +343,43 @@ function RecargasContent() {
         </h1>
       </div>
 
-      {/* Saldo a favor banner */}
-      {saldo && saldo.totalUsd > 0 && (
-        <Card className="border-green-400 border-2 bg-green-50">
-          <CardContent className="p-4">
-            <div className="flex items-start justify-between gap-3 flex-wrap">
-              <div>
-                <p className="text-xs uppercase tracking-wide text-green-700 font-semibold">
-                  Tu saldo a favor
-                </p>
-                <p className="text-2xl font-extrabold text-green-700 tabular-nums mt-1">
-                  ${saldo.totalUsd.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{" "}
-                  USD
-                </p>
-                <p className="text-xs text-green-700/80 mt-1">
-                  {"\u2248 "}Bs. {saldo.totalBs.toLocaleString("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </p>
-              </div>
-              <div className="text-xs text-green-700/80 max-w-xs">
-                Tienes {saldo.availableCount} credito{saldo.availableCount !== 1 ? "s" : ""} de saldo por excedentes de pagos anteriores.
-                Contacta soporte para aplicarlo a esta compra.
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      {/* Saldo a favor: opcion de usar */}
+      {saldoBs > 0 && pkg && rate && (() => {
+        const fullPriceBs = pkg.priceUsd * rate.eur;
+        const saldoApplicable = Math.min(saldoBs, fullPriceBs);
+        return (
+          <Card className="border-green-400 border-2 bg-green-50">
+            <CardContent className="p-4">
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={useSaldo}
+                  onChange={(e) => setUseSaldo(e.target.checked)}
+                  className="mt-1 h-4 w-4 accent-green-600"
+                />
+                <div className="flex-1">
+                  <p className="text-xs uppercase tracking-wide text-green-700 font-semibold">
+                    Saldo a favor disponible
+                  </p>
+                  <p className="text-2xl font-extrabold text-green-700 tabular-nums">
+                    Bs. {saldoBs.toLocaleString("es-VE", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
+                  </p>
+                  <p className="text-sm text-green-700 mt-1">
+                    Aplicar Bs. {saldoApplicable.toLocaleString("es-VE", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}{" "}
+                    a esta compra
+                  </p>
+                </div>
+              </label>
+            </CardContent>
+          </Card>
+        );
+      })()}
 
       {/* Package summary */}
       <Card className="border-primary border-2">
@@ -428,26 +426,49 @@ function RecargasContent() {
           </p>
         </CardHeader>
         <CardContent className="space-y-3">
-          {/* Bs amount highlight (calculated with Euro BCV rate) */}
-          {rate && (
-            <div className="rounded-lg border-2 border-primary bg-primary/5 p-4 text-center">
-              <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                Monto a depositar
-              </p>
-              <p className="text-3xl font-extrabold text-primary tabular-nums mt-1">
-                Bs. {(pkg.priceUsd * rate.eur).toLocaleString("es-VE", {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                })}
-              </p>
-              <p className="text-xs text-muted-foreground mt-2">
-                ${pkg.priceUsd} &times; {rate.eur.toLocaleString("es-VE", { maximumFractionDigits: 4 })} (tasa Euro BCV)
-              </p>
-              <div className="mt-3 flex items-center justify-center gap-1">
-                <CopyBtn text={(pkg.priceUsd * rate.eur).toFixed(2)} />
+          {/* Bs amount highlight (calculated with Euro BCV rate, minus saldo if used) */}
+          {rate && (() => {
+            const fullBs = pkg.priceUsd * rate.eur;
+            const saldoApplied = useSaldo ? Math.min(saldoBs, fullBs) : 0;
+            const toDepositBs = Math.max(0, fullBs - saldoApplied);
+            return (
+              <div className="rounded-lg border-2 border-primary bg-primary/5 p-4 text-center">
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                  Monto a depositar
+                </p>
+                <p className="text-3xl font-extrabold text-primary tabular-nums mt-1">
+                  Bs. {toDepositBs.toLocaleString("es-VE", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
+                </p>
+                <p className="text-xs text-muted-foreground mt-2">
+                  ${pkg.priceUsd} &times;{" "}
+                  {rate.eur.toLocaleString("es-VE", { maximumFractionDigits: 4 })}{" "}
+                  (tasa Euro BCV)
+                </p>
+                {saldoApplied > 0 && (
+                  <p className="text-xs text-green-700 mt-1 font-medium">
+                    Aplicando saldo: -Bs.{" "}
+                    {saldoApplied.toLocaleString("es-VE", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
+                  </p>
+                )}
+                {toDepositBs > 0 && (
+                  <div className="mt-3 flex items-center justify-center gap-1">
+                    <CopyBtn text={toDepositBs.toFixed(2)} />
+                  </div>
+                )}
+                {toDepositBs === 0 && (
+                  <p className="text-xs text-green-700 mt-2 font-bold">
+                    Saldo cubre el total. No hay monto adicional a depositar.
+                  </p>
+                )}
               </div>
-            </div>
-          )}
+            );
+          })()}
           {rateError && (
             <div className="rounded-lg bg-yellow-50 border border-yellow-200 p-3 text-xs text-yellow-800">
               {rateError}. Consulta el monto por WhatsApp antes de pagar.
@@ -586,8 +607,10 @@ function RecargasContent() {
                 )}
 
                 {ocrData && !ocrLoading && (() => {
+                  const fullBs = rate && pkg ? pkg.priceUsd * rate.eur : 0;
+                  const saldoApplied = useSaldo ? Math.min(saldoBs, fullBs) : 0;
                   const expectedBs =
-                    rate && pkg ? pkg.priceUsd * rate.eur : null;
+                    rate && pkg ? Math.max(0, fullBs - saldoApplied) : null;
                   let amountCheck: "ok" | "low" | "high" | "unknown" = "unknown";
                   let diffPct = 0;
                   if (expectedBs && ocrData.amountBs != null) {

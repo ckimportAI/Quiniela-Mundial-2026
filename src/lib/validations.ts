@@ -24,6 +24,7 @@ export const paymentReportSchema = z.object({
   paymentDate: z.string().datetime().optional(),
   bcvRateUsd: z.number().positive().optional(),
   bcvRateEur: z.number().positive().optional(),
+  useSaldoBs: z.number().min(0).optional(),
   method: z.string().min(2, "Metodo requerido").max(50),
   reference: z.string().min(3, "Referencia requerida").max(100),
   notes: z.string().max(500).optional(),

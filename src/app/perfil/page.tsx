@@ -67,11 +67,12 @@ export default async function PerfilPage() {
     0
   );
 
-  // Fetch user details for nickname and credits
+  // Fetch user details for nickname, credits and saldo
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { nickname: true, credits: true },
+    select: { nickname: true, credits: true, saldoBs: true },
   });
+  const saldoBs = Number(user?.saldoBs ?? 0);
 
   return (
     <div className="space-y-6">
@@ -86,25 +87,44 @@ export default async function PerfilPage() {
         </p>
       </div>
 
-      {/* Credits balance */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
+      {/* Credits + saldo */}
+      <div className="grid gap-3 md:grid-cols-2">
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Creditos disponibles</p>
                 <p className="text-2xl font-bold">{user?.credits ?? 0}</p>
               </div>
+              <a
+                href="/paquetes"
+                className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-4"
+              >
+                Comprar
+              </a>
             </div>
-            <a
-              href="/recargas"
-              className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-4"
-            >
-              Recargar
-            </a>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+
+        {saldoBs > 0 && (
+          <Card className="border-green-400 border-2 bg-green-50">
+            <CardContent className="p-4">
+              <p className="text-xs text-green-700 uppercase font-semibold tracking-wide">
+                Saldo a favor
+              </p>
+              <p className="text-2xl font-bold text-green-700 tabular-nums">
+                Bs. {saldoBs.toLocaleString("es-VE", {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}
+              </p>
+              <p className="text-xs text-green-700/80 mt-1">
+                Aplicalo en tu proxima compra
+              </p>
+            </CardContent>
+          </Card>
+        )}
+      </div>
 
       {/* Global stats overview */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

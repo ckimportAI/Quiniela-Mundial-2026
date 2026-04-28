@@ -22,10 +22,14 @@ export async function GET() {
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { credits: true },
+    select: { credits: true, saldoBs: true },
   });
 
-  return NextResponse.json({ payments, credits: user?.credits ?? 0 });
+  return NextResponse.json({
+    payments,
+    credits: user?.credits ?? 0,
+    saldoBs: Number(user?.saldoBs ?? 0),
+  });
 }
 
 // POST: Submit new payment report
@@ -138,6 +142,23 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  // Validate saldo usage doesn't exceed available
+  let saldoUsadoBs: number | null = null;
+  if (parsed.data.useSaldoBs && parsed.data.useSaldoBs > 0) {
+    const u = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { saldoBs: true },
+    });
+    const available = Number(u?.saldoBs ?? 0);
+    if (parsed.data.useSaldoBs > available) {
+      return NextResponse.json(
+        { error: `Saldo insuficiente. Disponible: Bs. ${available.toFixed(2)}` },
+        { status: 400 }
+      );
+    }
+    saldoUsadoBs = parsed.data.useSaldoBs;
+  }
+
   const payment = await prisma.paymentReport.create({
     data: {
       userId: session.user.id,
@@ -148,6 +169,7 @@ export async function POST(request: NextRequest) {
       paymentDate: parsed.data.paymentDate ? new Date(parsed.data.paymentDate) : null,
       bcvRateUsd: parsed.data.bcvRateUsd ?? null,
       bcvRateEur: parsed.data.bcvRateEur ?? null,
+      saldoUsadoBs,
       method: parsed.data.method,
       reference: parsed.data.reference,
       notes: parsed.data.notes,

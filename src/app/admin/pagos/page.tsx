@@ -12,6 +12,8 @@ interface PaymentWithDetails {
   credits: number;
   amount: string;
   amountBs: string | null;
+  saldoUsadoBs: string | null;
+  saldoCreadoBs: string | null;
   paymentDate: string | null;
   bcvRateUsd: string | null;
   bcvRateEur: string | null;
@@ -250,6 +252,16 @@ export default function AdminPagosPage() {
                         {p.bcvRateEur && (
                           <p className="text-xs text-muted-foreground">
                             Tasa Euro BCV: {Number(p.bcvRateEur).toLocaleString("es-VE", { maximumFractionDigits: 4 })}
+                          </p>
+                        )}
+                        {p.saldoUsadoBs && Number(p.saldoUsadoBs) > 0 && (
+                          <p className="text-xs text-blue-700 mt-1">
+                            Saldo aplicado: Bs. {formatBs(p.saldoUsadoBs)}
+                          </p>
+                        )}
+                        {p.saldoCreadoBs && Number(p.saldoCreadoBs) > 0 && (
+                          <p className="text-xs text-green-700 mt-1">
+                            Saldo creado: Bs. {formatBs(p.saldoCreadoBs)}
                           </p>
                         )}
                       </div>

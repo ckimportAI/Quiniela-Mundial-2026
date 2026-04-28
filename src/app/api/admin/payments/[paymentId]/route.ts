@@ -4,6 +4,8 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { reviewPaymentSchema } from "@/lib/validations";
 
+const TOLERANCE = 0.02; // 2%
+
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ paymentId: string }> }
@@ -25,7 +27,6 @@ export async function PATCH(
     );
   }
 
-  // Fetch the payment report
   const payment = await prisma.paymentReport.findUnique({
     where: { id: paymentId },
   });
@@ -42,10 +43,14 @@ export async function PATCH(
   }
 
   if (parsed.data.status === "APPROVED") {
-    // Fetch user to auto-name quinielas
     const user = await prisma.user.findUnique({
       where: { id: payment.userId },
-      select: { nickname: true, name: true, _count: { select: { quinielas: true } } },
+      select: {
+        nickname: true,
+        name: true,
+        saldoBs: true,
+        _count: { select: { quinielas: true } },
+      },
     });
     if (!user) {
       return NextResponse.json({ error: "Usuario no encontrado" }, { status: 404 });
@@ -53,10 +58,37 @@ export async function PATCH(
 
     const nickname = user.nickname ?? user.name ?? "user";
     const existingCount = user._count.quinielas;
-    const toCreate = payment.credits; // already includes promo if applied
+    const toCreate = payment.credits;
 
-    // If payment is package-based → auto-create quinielas.
-    // If legacy credit-only payment → just increment credits.
+    // ----------------------------------------------------------
+    // Saldo a favor logic (only when Bs info is available)
+    // ----------------------------------------------------------
+    let saldoToCreateBs = 0; // amount of NEW saldo to credit (excess Bs)
+    let saldoToConsumeBs = Number(payment.saldoUsadoBs ?? 0); // saldo user requested to apply
+
+    // Validate: user can only consume up to their available saldo
+    const availableSaldoBs = Number(user.saldoBs);
+    if (saldoToConsumeBs > availableSaldoBs) {
+      saldoToConsumeBs = availableSaldoBs;
+    }
+
+    if (payment.amountBs && payment.bcvRateEur) {
+      const fullExpectedBs = Number(payment.amount) * Number(payment.bcvRateEur);
+      // Effective expected = total - saldo applied
+      const effectiveExpectedBs = fullExpectedBs - saldoToConsumeBs;
+      const actualBs = Number(payment.amountBs);
+      const diff = actualBs - effectiveExpectedBs;
+      const pct =
+        effectiveExpectedBs > 0 ? Math.abs(diff) / effectiveExpectedBs : 0;
+
+      if (diff > 0 && pct > TOLERANCE) {
+        saldoToCreateBs = Math.round(diff * 100) / 100;
+      }
+    }
+
+    // ----------------------------------------------------------
+    // Build transaction operations
+    // ----------------------------------------------------------
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const ops: any[] = [
       prisma.paymentReport.update({
@@ -66,6 +98,8 @@ export async function PATCH(
           reviewedBy: session.user.id,
           reviewedAt: new Date(),
           quinielasGranted: payment.packageId ? toCreate : 0,
+          saldoUsadoBs: saldoToConsumeBs > 0 ? saldoToConsumeBs : null,
+          saldoCreadoBs: saldoToCreateBs > 0 ? saldoToCreateBs : null,
         },
       }),
       prisma.adminLog.create({
@@ -73,14 +107,24 @@ export async function PATCH(
           adminId: session.user.id,
           action: "APPROVE_PAYMENT",
           details: payment.packageId
-            ? `Approved payment #${paymentId}: ${toCreate} quinielas for user ${payment.userId} (promo: ${payment.promoApplied})`
-            : `Approved payment #${paymentId}: ${payment.credits} credits for user ${payment.userId}`,
+            ? `Approved #${paymentId.slice(-8)}: ${toCreate} qui, saldoUsado=${saldoToConsumeBs}, saldoCreado=${saldoToCreateBs}`
+            : `Approved #${paymentId.slice(-8)}: ${payment.credits} credits`,
         },
       }),
     ];
 
+    // Update user.saldoBs: subtract consumed, add created
+    const saldoDelta = saldoToCreateBs - saldoToConsumeBs;
+    if (saldoDelta !== 0) {
+      ops.push(
+        prisma.user.update({
+          where: { id: payment.userId },
+          data: { saldoBs: { increment: saldoDelta } },
+        })
+      );
+    }
+
     if (payment.packageId) {
-      // Auto-create N quinielas
       for (let i = 0; i < toCreate; i++) {
         ops.push(
           prisma.quiniela.create({
@@ -93,7 +137,6 @@ export async function PATCH(
         );
       }
     } else {
-      // Legacy: just add credits
       ops.push(
         prisma.user.update({
           where: { id: payment.userId },
@@ -102,57 +145,29 @@ export async function PATCH(
       );
     }
 
-    // Detect excess and create saldo a favor (only when Bs info is available)
-    const TOLERANCE = 0.02;
-    if (payment.amountBs && payment.bcvRateEur) {
-      const expectedBs =
-        Number(payment.amount) * Number(payment.bcvRateEur);
-      const actualBs = Number(payment.amountBs);
-      const diff = actualBs - expectedBs;
-      const pct = expectedBs > 0 ? Math.abs(diff) / expectedBs : 0;
-
-      if (diff > 0 && pct > TOLERANCE) {
-        const excessBs = diff;
-        const excessUsd = excessBs / Number(payment.bcvRateEur);
-        ops.push(
-          prisma.saldoFavor.create({
-            data: {
-              userId: payment.userId,
-              montoUsd: excessUsd,
-              montoBs: excessBs,
-              tasaEurBcv: payment.bcvRateEur,
-              origenPaymentId: payment.id,
-              notes: `Excedente de pago #${payment.id.slice(-8)} (${(pct * 100).toFixed(2)}%)`,
-            },
-          })
-        );
-      }
-    }
-
     const [updatedPayment] = await prisma.$transaction(ops);
-
     return NextResponse.json(updatedPayment);
-  } else {
-    // Reject: update payment with rejection note
-    const updatedPayment = await prisma.$transaction([
-      prisma.paymentReport.update({
-        where: { id: paymentId },
-        data: {
-          status: "REJECTED",
-          reviewedBy: session.user.id,
-          reviewedAt: new Date(),
-          rejectionNote: parsed.data.rejectionNote ?? null,
-        },
-      }),
-      prisma.adminLog.create({
-        data: {
-          adminId: session.user.id,
-          action: "REJECT_PAYMENT",
-          details: `Rejected payment #${paymentId}: ${parsed.data.rejectionNote ?? "No reason"}`,
-        },
-      }),
-    ]);
-
-    return NextResponse.json(updatedPayment[0]);
   }
+
+  // ---- REJECTED branch ----
+  const updatedPayment = await prisma.$transaction([
+    prisma.paymentReport.update({
+      where: { id: paymentId },
+      data: {
+        status: "REJECTED",
+        reviewedBy: session.user.id,
+        reviewedAt: new Date(),
+        rejectionNote: parsed.data.rejectionNote ?? null,
+      },
+    }),
+    prisma.adminLog.create({
+      data: {
+        adminId: session.user.id,
+        action: "REJECT_PAYMENT",
+        details: `Rejected payment #${paymentId.slice(-8)}: ${parsed.data.rejectionNote ?? "No reason"}`,
+      },
+    }),
+  ]);
+
+  return NextResponse.json(updatedPayment[0]);
 }
