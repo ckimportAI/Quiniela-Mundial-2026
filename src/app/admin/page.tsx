@@ -382,6 +382,12 @@ export default async function AdminPage() {
             title="Beta Testers"
             description="Regala quinielas de prueba y limpia datos beta."
           />
+          <ActionCard
+            href="/admin/ganadores"
+            icon={Trophy}
+            title="Ganadores"
+            description="Cierra el torneo y gestiona pagos a ganadores."
+          />
         </div>
       </div>
 

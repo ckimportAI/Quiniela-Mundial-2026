@@ -52,6 +52,7 @@ model User {
   createdSubQuinielas    SubQuiniela[]
   subQuinielaMemberships SubQuinielaMember[]
   saldosFavor           SaldoFavor[]
+  ganadores             Ganador[]
 
   @@map("users")
 }
@@ -160,6 +161,7 @@ model Quiniela {
   tournamentPredictions  TournamentPrediction[]
   score                  QuinielaScore?
   subQuinielaMemberships SubQuinielaMember[]
+  ganador                Ganador?
 
   @@index([isTest])
   @@map("quinielas")
@@ -509,4 +511,49 @@ model SaldoFavor {
   @@index([userId])
   @@index([isUsed])
   @@map("saldos_favor")
+}
+
+enum GanadorStatus {
+  PENDIENTE_DATOS
+  DATOS_RECIBIDOS
+  PAGADO
+  NO_RECLAMADO
+}
+
+model Ganador {
+  id              String         @id @default(cuid())
+  quinielaId      String         @unique
+  userId          String
+  posicion        Int            // 1, 2, 3
+  puntosFinales   Int
+  empatadosCon    Int            @default(1) // 1 = sin empate, 2+ = dividido entre N
+  premioUsd       Decimal        @db.Decimal(14, 2)
+
+  // Datos de cobro (los llena el ganador)
+  bancoCobro      String?        @db.VarChar(50)
+  telefonoCobro   String?        @db.VarChar(20)
+  cedulaCobro     String?        @db.VarChar(20)
+  notasCobro      String?        @db.VarChar(500)
+  fechaDatosCobro DateTime?
+
+  // Datos del pago (los llena el admin)
+  status          GanadorStatus  @default(PENDIENTE_DATOS)
+  tasaEurBcvPago  Decimal?       @db.Decimal(14, 4)
+  montoPagadoBs   Decimal?       @db.Decimal(14, 2)
+  metodoPago      String?        @db.VarChar(50)
+  referenciaPago  String?        @db.VarChar(100)
+  comprobanteUrl  String?        @db.VarChar(300)
+  notasAdmin      String?        @db.VarChar(500)
+  fechaPago       DateTime?
+  pagadoPor       String?
+
+  fechaOtorgado   DateTime       @default(now())
+  fechaLimite     DateTime       // 30 dias para reclamar
+
+  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  quiniela        Quiniela       @relation(fields: [quinielaId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+  @@map("ganadores")
 }

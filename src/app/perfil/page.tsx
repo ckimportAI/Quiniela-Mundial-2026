@@ -67,12 +67,17 @@ export default async function PerfilPage() {
     0
   );
 
-  // Fetch user details for nickname, credits and saldo
+  // Fetch user details for nickname, credits, saldo
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
     select: { nickname: true, credits: true, saldoBs: true },
   });
   const saldoBs = Number(user?.saldoBs ?? 0);
+
+  // Check if user has any winner record
+  const winnersCount = await prisma.ganador.count({
+    where: { userId: session.user.id },
+  });
 
   return (
     <div className="space-y-6">
@@ -86,6 +91,27 @@ export default async function PerfilPage() {
           {session.user.name} · {session.user.email}
         </p>
       </div>
+
+      {/* Winner banner */}
+      {winnersCount > 0 && (
+        <a
+          href="/mis-premios"
+          className="block rounded-xl bg-gradient-to-r from-yellow-400 via-orange-400 to-pink-500 p-4 text-white shadow hover:shadow-lg transition-shadow"
+        >
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-2">
+              <span className="text-2xl">🏆</span>
+              <div>
+                <p className="font-bold">Felicidades, has ganado!</p>
+                <p className="text-sm opacity-90">
+                  Click aqui para ver tus premios y entregar tus datos de cobro
+                </p>
+              </div>
+            </div>
+            <span className="text-sm font-medium">Ver premios →</span>
+          </div>
+        </a>
+      )}
 
       {/* Credits + saldo */}
       <div className="grid gap-3 md:grid-cols-2">
