@@ -557,3 +557,17 @@ model Ganador {
   @@index([status])
   @@map("ganadores")
 }
+
+model UsdtConversion {
+  id             String   @id @default(cuid())
+  bsAmount       Decimal  @db.Decimal(14, 2)
+  usdtAmount     Decimal  @db.Decimal(14, 2)
+  rate           Decimal  @db.Decimal(14, 4)
+  conversionDate DateTime
+  notes          String?  @db.VarChar(500)
+  createdById    String
+  createdAt      DateTime @default(now())
+
+  @@index([conversionDate])
+  @@map("usdt_conversions")
+}

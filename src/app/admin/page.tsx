@@ -388,6 +388,12 @@ export default async function AdminPage() {
             title="Ganadores"
             description="Cierra el torneo y gestiona pagos a ganadores."
           />
+          <ActionCard
+            href="/admin/usdt"
+            icon={Wallet}
+            title="Pool USDT"
+            description="Registra conversiones Bs -> USDT del pool."
+          />
         </div>
       </div>
 
