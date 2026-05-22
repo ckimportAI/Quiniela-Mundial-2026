@@ -32,5 +32,11 @@ export async function GET() {
       return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
     });
 
-  return NextResponse.json({ items });
+  // Find the AI group sub-quiniela
+  const aiGroup = await prisma.subQuiniela.findFirst({
+    where: { name: { contains: "IAs Predicen", mode: "insensitive" } },
+    select: { id: true, inviteCode: true, name: true },
+  });
+
+  return NextResponse.json({ items, aiGroup });
 }

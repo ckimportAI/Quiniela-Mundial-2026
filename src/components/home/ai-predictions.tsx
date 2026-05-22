@@ -13,6 +13,12 @@ interface AiItem {
   championCode: string | null;
 }
 
+interface AiGroup {
+  id: string;
+  inviteCode: string;
+  name: string;
+}
+
 const AI_DISPLAY: Record<string, { label: string; logo: string; color: string }> = {
   claude: { label: "Claude", logo: "/ai-logos/claude.svg", color: "bg-orange-50 border-orange-300 text-orange-900" },
   chatgpt: { label: "ChatGPT", logo: "/ai-logos/chatgpt.svg", color: "bg-emerald-50 border-emerald-300 text-emerald-900" },
@@ -23,6 +29,7 @@ const AI_DISPLAY: Record<string, { label: string; logo: string; color: string }>
 
 export function AiPredictionsSection() {
   const [items, setItems] = useState<AiItem[]>([]);
+  const [aiGroup, setAiGroup] = useState<AiGroup | null>(null);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
@@ -30,6 +37,7 @@ export function AiPredictionsSection() {
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
         if (data?.items) setItems(data.items);
+        if (data?.aiGroup) setAiGroup(data.aiGroup);
       })
       .finally(() => setLoaded(true));
   }, []);
@@ -91,6 +99,25 @@ export function AiPredictionsSection() {
             );
           })}
         </div>
+
+        {aiGroup && (
+          <div className="mt-5 rounded-lg bg-white/60 border border-purple-200 p-3 text-center">
+            <p className="text-xs text-purple-700 mb-2">
+              💡 Tienes una quiniela? Unete al grupo <strong>{aiGroup.name}</strong> y compite directamente contra las AIs
+            </p>
+            <div className="flex items-center justify-center gap-2 flex-wrap">
+              <code className="text-sm font-mono bg-purple-100 text-purple-900 px-3 py-1 rounded">
+                {aiGroup.inviteCode}
+              </code>
+              <Link
+                href={`/sub-quinielas/unirse/${aiGroup.inviteCode}`}
+                className="text-xs text-primary underline"
+              >
+                Unirme con codigo
+              </Link>
+            </div>
+          </div>
+        )}
 
         <div className="mt-5 flex items-center justify-center gap-3 flex-wrap">
           <Link
