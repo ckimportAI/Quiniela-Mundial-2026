@@ -149,12 +149,15 @@ enum SubQuinielaMemberRole {
 // ==========================================
 
 model Quiniela {
-  id        String   @id @default(cuid())
-  name      String
-  userId    String
-  isTest    Boolean  @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String   @id @default(cuid())
+  name        String
+  userId      String
+  isTest      Boolean  @default(false)
+  isAi        Boolean  @default(false)
+  aiProvider  String?  @db.VarChar(30)
+  aiProofUrl  String?  @db.VarChar(300)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   user                   User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
   predictions            Prediction[]
@@ -164,6 +167,7 @@ model Quiniela {
   ganador                Ganador?
 
   @@index([isTest])
+  @@index([isAi])
   @@map("quinielas")
 }
 

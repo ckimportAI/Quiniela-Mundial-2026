@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
   // All scores
   const scores = await prisma.quinielaScore.findMany({
     include: {
-      quiniela: { select: { isTest: true, userId: true } },
+      quiniela: { select: { isTest: true, isAi: true, userId: true } },
     },
   });
 
@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
       quinielaId: s.quinielaId,
       userId: s.quiniela.userId,
       totalPoints: s.totalPoints,
-      isTest: s.quiniela.isTest,
+      isTest: s.quiniela.isTest, isAi: s.quiniela.isAi,
     }))
   );
 

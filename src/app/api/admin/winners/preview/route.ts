@@ -39,7 +39,7 @@ export async function GET() {
       quinielaId: s.quinielaId,
       userId: s.quiniela.user.id,
       totalPoints: s.totalPoints,
-      isTest: s.quiniela.isTest,
+      isTest: s.quiniela.isTest, isAi: s.quiniela.isAi,
     }))
   );
 

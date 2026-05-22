@@ -14,6 +14,7 @@ export interface ScoreEntry {
   userId: string;
   totalPoints: number;
   isTest?: boolean;
+  isAi?: boolean;
 }
 
 export interface CalculatedWinner {
@@ -45,9 +46,9 @@ export function calculateWinners(
 } {
   const poolUsd = totalRecaudadoUsd * POOL_PERCENTAGE;
 
-  // Filter out test quinielas + zero point quinielas
+  // Filter out test + AI quinielas + zero point quinielas
   const eligible = scores
-    .filter((s) => !s.isTest && s.totalPoints > 0)
+    .filter((s) => !s.isTest && !s.isAi && s.totalPoints > 0)
     .sort((a, b) => b.totalPoints - a.totalPoints);
 
   if (eligible.length === 0) {

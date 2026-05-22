@@ -31,6 +31,13 @@ export default async function LeaderboardPage() {
     ],
   });
 
+  const aiLogos: Record<string, string> = {
+    claude: "🤖",
+    chatgpt: "🤖",
+    grok: "🤖",
+    deepseek: "🤖",
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -86,6 +93,7 @@ export default async function LeaderboardPage() {
                   <TableCell>
                     <div className="flex items-center gap-2">
                       {q.user.image && (
+                        // eslint-disable-next-line @next/next/no-img-element
                         <img
                           src={q.user.image}
                           alt=""
@@ -93,8 +101,15 @@ export default async function LeaderboardPage() {
                         />
                       )}
                       <span className="font-medium">
-                        {q.user.nickname ?? q.user.name ?? "Sin nombre"}
+                        {q.isAi && q.aiProvider
+                          ? aiLogos[q.aiProvider] + " " + (q.user.name ?? q.user.nickname ?? "AI")
+                          : q.user.nickname ?? q.user.name ?? "Sin nombre"}
                       </span>
+                      {q.isAi && (
+                        <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-300 text-[10px] px-1.5 py-0">
+                          AI
+                        </Badge>
+                      )}
                     </div>
                   </TableCell>
                   <TableCell className="hidden sm:table-cell">
