@@ -16,7 +16,7 @@ const PROVIDERS = {
   chatgpt: { name: "ChatGPT", email: "chatgpt@ai.quinielapanas.com", nickname: "chatgpt_ai" },
   grok: { name: "Grok AI", email: "grok@ai.quinielapanas.com", nickname: "grok_ai" },
   deepseek: { name: "DeepSeek AI", email: "deepseek@ai.quinielapanas.com", nickname: "deepseek_ai" },
-  gemini: { name: "Gemini", email: "gemini@ai.quinielapanas.com", nickname: "gemini_ai" },
+  gemini: { name: "Gemini AI", email: "gemini@ai.quinielapanas.com", nickname: "gemini_ai" },
 };
 
 const args = process.argv.slice(2);

@@ -32,10 +32,11 @@ export default async function LeaderboardPage() {
   });
 
   const aiLogos: Record<string, string> = {
-    claude: "🤖",
-    chatgpt: "🤖",
-    grok: "🤖",
-    deepseek: "🤖",
+    claude: "/ai-logos/claude.svg",
+    chatgpt: "/ai-logos/chatgpt.svg",
+    gemini: "/ai-logos/gemini.svg",
+    grok: "/ai-logos/grok.svg",
+    deepseek: "/ai-logos/deepseek.svg",
   };
 
   return (
@@ -92,17 +93,26 @@ export default async function LeaderboardPage() {
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
-                      {q.user.image && (
+                      {q.isAi && q.aiProvider && aiLogos[q.aiProvider] ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
-                          src={q.user.image}
-                          alt=""
-                          className="w-6 h-6 rounded-full"
+                          src={aiLogos[q.aiProvider]}
+                          alt={q.user.name ?? "AI"}
+                          className="w-6 h-6 object-contain"
                         />
+                      ) : (
+                        q.user.image && (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={q.user.image}
+                            alt=""
+                            className="w-6 h-6 rounded-full"
+                          />
+                        )
                       )}
                       <span className="font-medium">
-                        {q.isAi && q.aiProvider
-                          ? aiLogos[q.aiProvider] + " " + (q.user.name ?? q.user.nickname ?? "AI")
+                        {q.isAi
+                          ? q.user.name ?? q.user.nickname ?? "AI"
                           : q.user.nickname ?? q.user.name ?? "Sin nombre"}
                       </span>
                       {q.isAi && (
