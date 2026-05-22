@@ -24,7 +24,7 @@ const packages = [
     description: "3 quinielas - perfecto para amigos",
     priceUsd: 10,
     quinielasCount: 3,
-    bonusQuinielasOferta: 3, // 2x1: doblas (total: 6)
+    bonusQuinielasOferta: 0, // combo already includes 1 free; 2x1 does not apply
     badge: "MAS POPULAR",
     sortOrder: 2,
   },
@@ -34,7 +34,7 @@ const packages = [
     description: "5 quinielas - mejor valor",
     priceUsd: 15,
     quinielasCount: 5,
-    bonusQuinielasOferta: 5, // 2x1: doblas (total: 10)
+    bonusQuinielasOferta: 0, // combo already includes 2 free; 2x1 does not apply
     badge: "MEJOR VALOR",
     sortOrder: 3,
   },
