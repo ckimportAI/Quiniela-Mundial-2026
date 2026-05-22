@@ -252,6 +252,8 @@ function findMatch(homeName, awayName) {
 
 let inserted = 0;
 let notFound = 0;
+let duplicates = 0;
+const seenMatchIds = new Set();
 for (const p of predicted) {
   const found = findMatch(p.homeName, p.awayName);
   if (!found) {
@@ -259,6 +261,12 @@ for (const p of predicted) {
     notFound++;
     continue;
   }
+  if (seenMatchIds.has(found.match.id)) {
+    console.log(`  ! Duplicate: ${p.homeName} vs ${p.awayName} (omitido)`);
+    duplicates++;
+    continue;
+  }
+  seenMatchIds.add(found.match.id);
   const homeScore = found.reversed ? p.awayScore : p.homeScore;
   const awayScore = found.reversed ? p.homeScore : p.awayScore;
   await client.query(
@@ -268,7 +276,23 @@ for (const p of predicted) {
   );
   inserted++;
 }
-console.log(`Inserted ${inserted} predictions, ${notFound} not found`);
+console.log(`Inserted ${inserted} predictions, ${notFound} not found, ${duplicates} duplicates omitted`);
+
+// Identify missing GROUP_STAGE matches (those the AI didn't predict)
+const dbMatchIds = new Set(dbMatches.map(m => m.id));
+const missingMatchIds = [...dbMatchIds].filter(id => !seenMatchIds.has(id));
+if (missingMatchIds.length > 0) {
+  console.log(`Faltan ${missingMatchIds.length} partidos sin prediccion (rellenando con 0-0 default):`);
+  for (const mid of missingMatchIds) {
+    const m = dbMatches.find(x => x.id === mid);
+    console.log(`  - ${m.homeName} vs ${m.awayName} -> 0-0`);
+    await client.query(
+      `INSERT INTO predictions (id, "userId", "quinielaId", "matchId", "homeScore", "awayScore", "isWildcard", "createdAt", "updatedAt")
+       VALUES (gen_random_uuid()::text, $1, $2, $3, 0, 0, false, NOW(), NOW())`,
+      [userId, quinielaId, mid]
+    );
+  }
+}
 
 // 5. Tournament predictions
 const tour = parseTournament(predictionsText);
