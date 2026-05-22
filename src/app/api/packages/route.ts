@@ -35,7 +35,7 @@ export async function GET() {
   const bonusAvailableForUser = offerActive && !userHasUsedOffer;
   const canPurchase = puedeComprarPaquete();
 
-  const basePricePerQuiniela = 12; // Individual price as reference
+  const basePricePerQuiniela = 5; // Individual price as reference
 
   return NextResponse.json({
     packages: packages.map((p) => {
@@ -65,7 +65,7 @@ export async function GET() {
       availableForUser: bonusAvailableForUser,
       userHasUsedOffer,
       code: "bienvenida_lanzamiento",
-      name: "Oferta de Bienvenida Escalonada",
+      name: "Oferta 2x1 de Bienvenida",
       startsAt: OFERTA_BIENVENIDA_START.toISOString(),
       endsAt: OFERTA_BIENVENIDA_END.toISOString(),
     },

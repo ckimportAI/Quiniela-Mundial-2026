@@ -130,7 +130,7 @@ export default function Home() {
   const faqs = [
     {
       q: "Cuanto cuesta participar?",
-      a: "Un Individual cuesta $12 USD. Tenemos paquetes Amigos ($30 por 3 quinielas) y Familia ($40 por 5 quinielas). Pagas en Bs a la tasa Euro BCV del dia.",
+      a: "Un Individual cuesta $5 USD. Tenemos paquetes Amigos ($10 por 3 quinielas) y Familia ($15 por 5 quinielas). En tu PRIMERA compra recibes 2x1 (el doble de quinielas gratis). Pagas en Bs a la tasa Euro BCV del dia.",
     },
     {
       q: "Como se calculan los puntos?",
