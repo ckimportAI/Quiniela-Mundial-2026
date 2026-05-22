@@ -13,12 +13,12 @@ interface AiItem {
   championCode: string | null;
 }
 
-const AI_DISPLAY: Record<string, { label: string; emoji: string; color: string }> = {
-  claude: { label: "Claude", emoji: "🤖", color: "bg-orange-100 border-orange-300 text-orange-900" },
-  chatgpt: { label: "ChatGPT", emoji: "🤖", color: "bg-emerald-100 border-emerald-300 text-emerald-900" },
-  gemini: { label: "Gemini", emoji: "🤖", color: "bg-blue-100 border-blue-300 text-blue-900" },
-  grok: { label: "Grok", emoji: "🤖", color: "bg-zinc-100 border-zinc-400 text-zinc-900" },
-  deepseek: { label: "DeepSeek", emoji: "🤖", color: "bg-indigo-100 border-indigo-300 text-indigo-900" },
+const AI_DISPLAY: Record<string, { label: string; logo: string; color: string }> = {
+  claude: { label: "Claude", logo: "/ai-logos/claude.svg", color: "bg-orange-50 border-orange-300 text-orange-900" },
+  chatgpt: { label: "ChatGPT", logo: "/ai-logos/chatgpt.svg", color: "bg-emerald-50 border-emerald-300 text-emerald-900" },
+  gemini: { label: "Gemini", logo: "/ai-logos/gemini.svg", color: "bg-blue-50 border-blue-300 text-blue-900" },
+  grok: { label: "Grok", logo: "/ai-logos/grok.svg", color: "bg-zinc-50 border-zinc-400 text-zinc-900" },
+  deepseek: { label: "DeepSeek", logo: "/ai-logos/deepseek.svg", color: "bg-indigo-50 border-indigo-300 text-indigo-900" },
 };
 
 export function AiPredictionsSection() {
@@ -56,7 +56,7 @@ export function AiPredictionsSection() {
           {items.map((ai) => {
             const cfg = AI_DISPLAY[ai.provider] ?? {
               label: ai.provider,
-              emoji: "🤖",
+              logo: null,
               color: "bg-gray-100 border-gray-300",
             };
             return (
@@ -65,7 +65,16 @@ export function AiPredictionsSection() {
                 href={`/quiniela/${ai.quinielaId}`}
                 className={`block rounded-xl border-2 p-3 text-center hover:scale-105 transition-transform ${cfg.color}`}
               >
-                <div className="text-xl mb-1">{cfg.emoji}</div>
+                {cfg.logo ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={cfg.logo}
+                    alt={cfg.label}
+                    className="mx-auto h-8 w-8 mb-1 object-contain"
+                  />
+                ) : (
+                  <div className="text-xl mb-1">🤖</div>
+                )}
                 <div className="font-bold text-sm">{cfg.label}</div>
                 <div className="mt-2 pt-2 border-t border-current/20">
                   {ai.championCode ? (
