@@ -4,6 +4,9 @@ export const TOURNAMENT_START_DATE = new Date("2026-06-11T00:00:00Z");
 // Deadline for tournament predictions (end of group stage)
 export const TOURNAMENT_PREDICTIONS_DEADLINE = new Date("2026-07-03T23:59:59Z");
 
+// Guaranteed minimum prize pool (USD) - shown on landing
+export const GUARANTEED_PRIZE_USD = 1000;
+
 // App metadata
 export const APP_NAME = "Quiniela Mundial 2026";
 export const APP_DESCRIPTION =

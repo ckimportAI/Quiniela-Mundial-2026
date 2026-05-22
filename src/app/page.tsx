@@ -8,7 +8,7 @@ import {
   Card,
   CardContent,
 } from "@/components/ui/card";
-import { TOURNAMENT_START_DATE } from "@/lib/constants";
+import { TOURNAMENT_START_DATE, GUARANTEED_PRIZE_USD } from "@/lib/constants";
 import {
   Users,
   BarChart3,
@@ -136,8 +136,12 @@ export default function Home() {
       a: "Resultado exacto: 5 pts. Ganador correcto: 3 pts. Un marcador acertado: 1 pt. Los puntos se multiplican en eliminatorias (x1.5 a x3 segun la fase). Ademas tienes 2 comodines por quiniela que duplican los puntos del partido elegido.",
     },
     {
+      q: "Que es el premio garantizado de $1,000?",
+      a: "Es el monto minimo que recibira el ganador del primer lugar, sin importar cuanto se recaude. Si el pool de premios (70% del total recaudado) supera los $1,000, el ganador recibe el monto mayor. Es nuestra garantia para que valga la pena participar desde el inicio.",
+    },
+    {
       q: "Como se pagan los premios?",
-      a: "Se paga el 70% del total recaudado como pool. Distribucion: 55% primer lugar, 28% segundo, 17% tercero. Los premios se anuncian en USD pero se pagan siempre en Bolivares a la tasa Euro BCV del dia del pago.",
+      a: "El pool se forma con el 70% del total recaudado. Distribucion: 55% primer lugar, 28% segundo, 17% tercero. Los premios se anuncian en USD pero se pagan siempre en Bolivares a la tasa Euro BCV del dia del pago.",
     },
     {
       q: "Hasta cuando puedo comprar?",
@@ -157,6 +161,25 @@ export default function Home() {
 
       {/* Pool card (admin-gated) */}
       <PoolCard />
+
+      {/* Guaranteed prize banner */}
+      <div className="w-full rounded-2xl bg-gradient-to-r from-yellow-400 via-amber-400 to-yellow-500 p-1 shadow-lg">
+        <div className="rounded-xl bg-gradient-to-br from-yellow-50 to-amber-50 px-6 py-5 text-center">
+          <div className="flex items-center justify-center gap-2 mb-1">
+            <Trophy className="h-5 w-5 text-amber-700" />
+            <p className="text-xs uppercase tracking-widest font-bold text-amber-700">
+              Premio Garantizado
+            </p>
+            <Trophy className="h-5 w-5 text-amber-700" />
+          </div>
+          <p className="text-4xl sm:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-amber-600 to-yellow-600 tabular-nums">
+            ${GUARANTEED_PRIZE_USD.toLocaleString("en-US")} USD
+          </p>
+          <p className="text-xs text-amber-800/80 mt-2">
+            Premio minimo garantizado al ganador del primer lugar
+          </p>
+        </div>
+      </div>
 
       {/* Hero Section */}
       <section className="gradient-hero w-full rounded-2xl px-6 py-12 sm:py-16 flex flex-col items-center text-center">
