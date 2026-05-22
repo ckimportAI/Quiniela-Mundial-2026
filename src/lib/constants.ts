@@ -39,7 +39,7 @@ export function puedeCrearQuiniela(at: Date = new Date()): boolean {
 
 // Pago Movil (Venezuela)
 export const PAGO_MOVIL = {
-  phone: "0414-234-3406",
-  cedula: "V-11.037.269",
-  bank: "Banesco",
+  phone: "04142343406",
+  cedula: "11037269",
+  bank: "Bancamiga",
 };
