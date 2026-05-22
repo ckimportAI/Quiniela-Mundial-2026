@@ -179,7 +179,7 @@ export default function PaquetesPage() {
                         USD
                       </span>
                     </div>
-                    {pkg.comboFreeQuinielas > 0 && (
+                    {pkg.comboFreeQuinielas > 0 && !bonusApplies && (
                       <p className="text-sm font-bold text-green-600 mt-1">
                         {pkg.comboFreeQuinielas === 1
                           ? "+ 1 GRATIS"
