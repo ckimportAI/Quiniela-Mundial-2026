@@ -1,0 +1,116 @@
+=== FASE DE GRUPOS (marcador exacto de cada partido) ===
+
+GRUPO A:
+
+* Mexico 2 - 1 South Africa
+* Korea Republic 1 - 1 Czech Republic
+* Mexico 2 - 1 Korea Republic
+* Czech Republic 2 - 0 South Africa
+* Czech Republic 1 - 1 Mexico
+* South Africa 1 - 2 Korea Republic
+
+GRUPO B:
+
+* Canada 1 - 0 Bosnia and Herzegovina
+* Qatar 0 - 2 Switzerland
+* Canada 2 - 1 Qatar
+* Switzerland 2 - 0 Bosnia and Herzegovina
+* Switzerland 1 - 1 Canada
+* Bosnia and Herzegovina 1 - 1 Qatar
+
+GRUPO C:
+
+* Brazil 3 - 0 Haiti
+* Morocco 2 - 1 Scotland
+* Brazil 2 - 1 Morocco
+* Scotland 2 - 0 Haiti
+* Scotland 0 - 2 Brazil
+* Haiti 0 - 3 Morocco
+
+GRUPO D:
+
+* United States 2 - 1 Paraguay
+* Australia 1 - 1 Turkey
+* United States 2 - 0 Australia
+* Turkey 2 - 1 Paraguay
+* Turkey 1 - 2 United States
+* Paraguay 1 - 1 Australia
+
+GRUPO E:
+
+* Germany 4 - 0 Curacao
+* Ivory Coast 1 - 1 Ecuador
+* Germany 2 - 1 Ivory Coast
+* Ecuador 3 - 0 Curacao
+* Ecuador 1 - 2 Germany
+* Curacao 0 - 2 Ivory Coast
+
+GRUPO F:
+
+* Netherlands 2 - 0 Tunisia
+* Japan 1 - 1 Sweden
+* Netherlands 2 - 1 Japan
+* Sweden 2 - 0 Tunisia
+* Sweden 1 - 1 Netherlands
+* Tunisia 1 - 2 Japan
+
+GRUPO G:
+
+* Belgium 2 - 0 New Zealand
+* Egypt 1 - 1 Iran
+* Belgium 2 - 1 Egypt
+* Iran 1 - 0 New Zealand
+* Iran 0 - 2 Belgium
+* New Zealand 0 - 2 Egypt
+
+GRUPO H:
+
+* Spain 3 - 0 Cabo Verde
+* Saudi Arabia 0 - 2 Uruguay
+* Spain 2 - 0 Saudi Arabia
+* Uruguay 2 - 0 Cabo Verde
+* Uruguay 1 - 1 Spain
+* Cabo Verde 1 - 1 Saudi Arabia
+
+GRUPO I:
+
+* France 3 - 0 Iraq
+* Senegal 1 - 1 Norway
+* France 2 - 1 Senegal
+* Norway 2 - 0 Iraq
+* Norway 1 - 2 France
+* Iraq 0 - 2 Senegal
+
+GRUPO J:
+
+* Argentina 3 - 0 Jordan
+* Algeria 1 - 1 Austria
+* Argentina 2 - 0 Algeria
+* Austria 2 - 0 Jordan
+* Austria 1 - 2 Argentina
+* Jordan 0 - 1 Algeria
+
+GRUPO K:
+
+* Portugal 3 - 0 Uzbekistan
+* DR Congo 1 - 2 Colombia
+* Portugal 2 - 0 DR Congo
+* Colombia 2 - 0 Uzbekistan
+* Colombia 1 - 1 Portugal
+* Uzbekistan 1 - 2 DR Congo
+
+GRUPO L:
+
+* England 3 - 0 Panama
+* Croatia 1 - 1 Ghana
+* England 2 - 1 Croatia
+* Ghana 2 - 0 Panama
+* Ghana 1 - 2 England
+* Panama 0 - 2 Croatia
+
+=== PREDICCIONES DEL TORNEO ===
+
+* Campeon: France
+* Subcampeon: Argentina
+* Tercer Lugar: Brazil
+* Goleador del Mundial: Kylian Mbappé (France)
