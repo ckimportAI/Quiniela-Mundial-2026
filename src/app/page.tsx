@@ -8,7 +8,7 @@ import {
   Card,
   CardContent,
 } from "@/components/ui/card";
-import { TOURNAMENT_START_DATE, GUARANTEED_PRIZE_USD } from "@/lib/constants";
+import { TOURNAMENT_START_DATE, GUARANTEED_PRIZES } from "@/lib/constants";
 import {
   Users,
   BarChart3,
@@ -136,8 +136,8 @@ export default function Home() {
       a: "Resultado exacto: 5 pts. Ganador correcto: 3 pts. Un marcador acertado: 1 pt. Los puntos se multiplican en eliminatorias (x1.5 a x3 segun la fase). Ademas tienes 2 comodines por quiniela que duplican los puntos del partido elegido.",
     },
     {
-      q: "Que es el premio garantizado de $1,000?",
-      a: "Es el monto minimo que recibira el ganador del primer lugar, sin importar cuanto se recaude. Si el pool de premios (70% del total recaudado) supera los $1,000, el ganador recibe el monto mayor. Es nuestra garantia para que valga la pena participar desde el inicio.",
+      q: "Que son los premios garantizados?",
+      a: "Son los montos minimos que recibiran los 3 primeros lugares: $500 / $250 / $150 USD, sin importar cuanto se recaude. Si el pool real (70% del total recaudado) supera estos montos, los ganadores reciben el monto mayor. Los premios se pagan en Bs a la tasa Euro BCV del dia del pago.",
     },
     {
       q: "Como se pagan los premios?",
@@ -168,15 +168,32 @@ export default function Home() {
           <div className="flex items-center justify-center gap-2 mb-1">
             <Trophy className="h-5 w-5 text-amber-700" />
             <p className="text-xs uppercase tracking-widest font-bold text-amber-700">
-              Premio Garantizado
+              Premios Garantizados
             </p>
             <Trophy className="h-5 w-5 text-amber-700" />
           </div>
           <p className="text-4xl sm:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-amber-600 to-yellow-600 tabular-nums">
-            ${GUARANTEED_PRIZE_USD.toLocaleString("en-US")} USD
+            ${GUARANTEED_PRIZES.first.toLocaleString("en-US")} USD
           </p>
-          <p className="text-xs text-amber-800/80 mt-2">
-            Premio minimo garantizado al ganador del primer lugar
+          <p className="text-xs text-amber-800/80">primer lugar</p>
+
+          <div className="mt-3 flex items-center justify-center gap-4 text-sm font-semibold text-amber-800">
+            <div>
+              <span className="text-base">${GUARANTEED_PRIZES.second}</span>
+              <span className="text-xs font-normal text-amber-800/70 ml-1">2&deg;</span>
+            </div>
+            <span className="text-amber-800/40">|</span>
+            <div>
+              <span className="text-base">${GUARANTEED_PRIZES.third}</span>
+              <span className="text-xs font-normal text-amber-800/70 ml-1">3&deg;</span>
+            </div>
+          </div>
+
+          <p className="text-xs text-amber-800/70 mt-3">
+            Premios minimos garantizados (si el pool real es mayor, recibes el monto mayor)
+          </p>
+          <p className="text-[10px] text-amber-800/60 mt-1">
+            Los premios se pagan en Bs a la tasa Euro BCV del dia
           </p>
         </div>
       </div>
