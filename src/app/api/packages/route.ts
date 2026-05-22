@@ -45,6 +45,10 @@ export async function GET() {
       const pricePerQuiniela = Number(p.priceUsd) / effectiveQuinielas;
       const savingsVsIndividual =
         basePricePerQuiniela * effectiveQuinielas - Number(p.priceUsd);
+      // Quinielas "gratis" inherentes al combo (independiente del 2x1)
+      // Por ejemplo Amigos: 3 quinielas pero pagas precio de 2 (1 gratis)
+      const comboFreeQuinielas =
+        p.quinielasCount - Math.round(Number(p.priceUsd) / basePricePerQuiniela);
 
       return {
         id: p.id,
@@ -57,6 +61,7 @@ export async function GET() {
         effectiveQuinielas,
         pricePerQuiniela,
         savingsVsIndividual: Math.max(0, savingsVsIndividual),
+        comboFreeQuinielas: Math.max(0, comboFreeQuinielas),
         badge: p.badge,
       };
     }),

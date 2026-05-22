@@ -18,6 +18,7 @@ interface PackageData {
   effectiveQuinielas: number;
   pricePerQuiniela: number;
   savingsVsIndividual: number;
+  comboFreeQuinielas: number;
   badge: string | null;
 }
 
@@ -178,6 +179,13 @@ export default function PaquetesPage() {
                         USD
                       </span>
                     </div>
+                    {pkg.comboFreeQuinielas > 0 && (
+                      <p className="text-sm font-bold text-green-600 mt-1">
+                        {pkg.comboFreeQuinielas === 1
+                          ? "+ 1 GRATIS"
+                          : `+ ${pkg.comboFreeQuinielas} GRATIS`}
+                      </p>
+                    )}
                     <p className="text-xs text-muted-foreground mt-1">
                       = ${pkg.pricePerQuiniela.toFixed(2)} por quiniela
                     </p>
