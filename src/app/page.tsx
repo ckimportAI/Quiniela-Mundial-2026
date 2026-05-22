@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { DeadlineBanner, OfferBanner } from "@/components/home/deadline-banner";
 import { PoolCard } from "@/components/home/pool-card";
+import { AiPredictionsSection } from "@/components/home/ai-predictions";
 
 function useCountdown(targetDate: Date) {
   const [timeLeft, setTimeLeft] = useState(getTimeLeft(targetDate));
@@ -151,6 +152,10 @@ export default function Home() {
       q: "Puedo tener varias quinielas?",
       a: "Si. Cada paquete te da N quinielas independientes, puedes usar estrategias distintas en cada una. Tambien puedes crear grupos privados con amigos.",
     },
+    {
+      q: "Las AIs participan del pool?",
+      a: "No. Las 5 quinielas hechas por AIs (Claude, ChatGPT, Gemini, Grok, DeepSeek) son solo para diversion y marketing. NO compiten por el dinero — los premios son solo para participantes humanos. Apareceran en el leaderboard como referencia pero estan excluidas del calculo de ganadores.",
+    },
   ];
 
   return (
@@ -197,6 +202,9 @@ export default function Home() {
           </p>
         </div>
       </div>
+
+      {/* AI Predictions */}
+      <AiPredictionsSection />
 
       {/* Hero Section */}
       <section className="gradient-hero w-full rounded-2xl px-6 py-12 sm:py-16 flex flex-col items-center text-center">
