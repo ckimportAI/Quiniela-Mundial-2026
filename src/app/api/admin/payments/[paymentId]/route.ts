@@ -3,6 +3,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { reviewPaymentSchema } from "@/lib/validations";
+import { generateUniqueGiftCode } from "@/lib/gift-code";
+import { FIN_CREAR_QUINIELAS } from "@/lib/constants";
 
 const TOLERANCE = 0.02; // 2%
 
@@ -60,6 +62,15 @@ export async function PATCH(
     const existingCount = user._count.quinielas;
     const toCreate = payment.credits;
 
+    // For gift payments we pre-generate the unique codes outside the transaction
+    // (DB roundtrips per code lookup) and use them inside.
+    const giftCodes: string[] = [];
+    if (payment.isGift && payment.giftQuantity > 0) {
+      for (let i = 0; i < payment.giftQuantity; i++) {
+        giftCodes.push(await generateUniqueGiftCode());
+      }
+    }
+
     // ----------------------------------------------------------
     // Saldo a favor logic (only when Bs info is available)
     // ----------------------------------------------------------
@@ -97,7 +108,7 @@ export async function PATCH(
           status: "APPROVED",
           reviewedBy: session.user.id,
           reviewedAt: new Date(),
-          quinielasGranted: payment.packageId ? toCreate : 0,
+          quinielasGranted: payment.isGift ? 0 : payment.packageId ? toCreate : 0,
           saldoUsadoBs: saldoToConsumeBs > 0 ? saldoToConsumeBs : null,
           saldoCreadoBs: saldoToCreateBs > 0 ? saldoToCreateBs : null,
         },
@@ -106,9 +117,11 @@ export async function PATCH(
         data: {
           adminId: session.user.id,
           action: "APPROVE_PAYMENT",
-          details: payment.packageId
-            ? `Approved #${paymentId.slice(-8)}: ${toCreate} qui, saldoUsado=${saldoToConsumeBs}, saldoCreado=${saldoToCreateBs}`
-            : `Approved #${paymentId.slice(-8)}: ${payment.credits} credits`,
+          details: payment.isGift
+            ? `Approved gift #${paymentId.slice(-8)}: ${payment.giftQuantity} codes`
+            : payment.packageId
+              ? `Approved #${paymentId.slice(-8)}: ${toCreate} qui, saldoUsado=${saldoToConsumeBs}, saldoCreado=${saldoToCreateBs}`
+              : `Approved #${paymentId.slice(-8)}: ${payment.credits} credits`,
         },
       }),
     ];
@@ -124,7 +137,21 @@ export async function PATCH(
       );
     }
 
-    if (payment.packageId) {
+    if (payment.isGift) {
+      // Create N GiftCodes (no quinielas yet, recipients redeem)
+      for (const code of giftCodes) {
+        ops.push(
+          prisma.giftCode.create({
+            data: {
+              code,
+              purchaserId: payment.userId,
+              paymentReportId: paymentId,
+              expiresAt: FIN_CREAR_QUINIELAS,
+            },
+          })
+        );
+      }
+    } else if (payment.packageId) {
       for (let i = 0; i < toCreate; i++) {
         ops.push(
           prisma.quiniela.create({

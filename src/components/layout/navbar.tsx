@@ -19,6 +19,7 @@ const authLinks = [
   { href: "/predicciones", label: "Predicciones" },
   { href: "/sub-quinielas", label: "Mis Grupos" },
   { href: "/paquetes", label: "Paquetes" },
+  { href: "/regalar", label: "Regalar" },
 ];
 
 export function Navbar() {

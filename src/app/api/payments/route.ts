@@ -101,8 +101,40 @@ export async function POST(request: NextRequest) {
 
   let credits = parsed.data.credits ?? 0;
   let promoApplied = false;
+  const isGift = parsed.data.isGift === true;
+  const giftQuantity = isGift ? (parsed.data.giftQuantity ?? 0) : 0;
 
-  if (parsed.data.packageId) {
+  // ----------------------------------------------------------
+  // GIFT path: $10 per quiniela, no welcome bonus applies
+  // ----------------------------------------------------------
+  if (isGift) {
+    if (giftQuantity < 1 || giftQuantity > 10) {
+      return NextResponse.json(
+        { error: "La cantidad de regalos debe ser entre 1 y 10" },
+        { status: 400 }
+      );
+    }
+    // Lookup INDIVIDUAL package to derive unit price (no bonus for gifts)
+    const indivPkg = await prisma.package.findUnique({
+      where: { code: "INDIVIDUAL" },
+    });
+    if (!indivPkg) {
+      return NextResponse.json(
+        { error: "Paquete individual no encontrado" },
+        { status: 500 }
+      );
+    }
+    const expectedTotal = Number(indivPkg.priceUsd) * giftQuantity;
+    if (Math.abs(parsed.data.amount - expectedTotal) > 0.01) {
+      return NextResponse.json(
+        {
+          error: `Monto incorrecto. Esperado: $${expectedTotal.toFixed(2)} (${giftQuantity} x $${indivPkg.priceUsd})`,
+        },
+        { status: 400 }
+      );
+    }
+    credits = giftQuantity; // tracked but not used to create quinielas for buyer
+  } else if (parsed.data.packageId) {
     const pkg = await prisma.package.findUnique({
       where: { id: parsed.data.packageId },
     });
@@ -175,6 +207,8 @@ export async function POST(request: NextRequest) {
       notes: parsed.data.notes,
       proofUrl: parsed.data.proofUrl ?? null,
       promoApplied,
+      isGift,
+      giftQuantity,
     },
   });
 

@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Image as ImageIcon, CheckCircle, XCircle, Sparkles } from "lucide-react";
+import { Image as ImageIcon, CheckCircle, XCircle, Sparkles, Gift } from "lucide-react";
 
 interface PaymentWithDetails {
   id: string;
@@ -25,6 +25,8 @@ interface PaymentWithDetails {
   rejectionNote: string | null;
   promoApplied: boolean;
   quinielasGranted: number;
+  isGift?: boolean;
+  giftQuantity?: number;
   createdAt: string;
   reviewedAt: string | null;
   user: {
@@ -220,6 +222,12 @@ export default function AdminPagosPage() {
                         </p>
                       </div>
                       <div className="flex items-center gap-2">
+                        {p.isGift && (
+                          <Badge className="bg-gradient-to-r from-pink-500 to-orange-400 text-white">
+                            <Gift className="h-3 w-3 mr-1" />
+                            REGALO x{p.giftQuantity ?? p.credits}
+                          </Badge>
+                        )}
                         {p.promoApplied && (
                           <Badge className="bg-gradient-to-r from-yellow-400 to-orange-400 text-black">
                             <Sparkles className="h-3 w-3 mr-1" />
@@ -233,12 +241,20 @@ export default function AdminPagosPage() {
                     {/* Package + Amounts */}
                     <div className="grid sm:grid-cols-2 gap-3 rounded-lg bg-muted/40 p-3 text-sm">
                       <div>
-                        <p className="text-xs text-muted-foreground">Paquete</p>
+                        <p className="text-xs text-muted-foreground">
+                          {p.isGift ? "Tipo" : "Paquete"}
+                        </p>
                         <p className="font-medium">
-                          {p.package ? `${p.package.name} ($${p.package.priceUsd})` : "Legacy"}
+                          {p.isGift
+                            ? `Regalo x${p.giftQuantity ?? p.credits} ($${p.amount})`
+                            : p.package
+                              ? `${p.package.name} ($${p.package.priceUsd})`
+                              : "Legacy"}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          {p.credits} quiniela{p.credits > 1 ? "s" : ""} a crear
+                          {p.isGift
+                            ? `${p.giftQuantity ?? p.credits} codigo${(p.giftQuantity ?? p.credits) > 1 ? "s" : ""} a generar`
+                            : `${p.credits} quiniela${p.credits > 1 ? "s" : ""} a crear`}
                         </p>
                       </div>
                       <div>

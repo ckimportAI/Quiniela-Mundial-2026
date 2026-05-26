@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import MyGifts from "@/components/profile/my-gifts";
 
 export const dynamic = "force-dynamic";
 
@@ -151,6 +152,9 @@ export default async function PerfilPage() {
           </Card>
         )}
       </div>
+
+      {/* Gifts I purchased */}
+      <MyGifts />
 
       {/* Global stats overview */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

@@ -29,8 +29,19 @@ export const paymentReportSchema = z.object({
   reference: z.string().min(3, "Referencia requerida").max(100),
   notes: z.string().max(500).optional(),
   proofUrl: z.string().max(300).optional(),
-}).refine((data) => !!data.packageId || !!data.credits, {
-  message: "Debes indicar un paquete o cantidad de creditos",
+  // Gift purchase: when true, generate GiftCodes instead of quinielas
+  isGift: z.boolean().optional().default(false),
+  giftQuantity: z.number().int().min(1).max(10).optional(),
+}).refine((data) => !!data.packageId || !!data.credits || (data.isGift && data.giftQuantity), {
+  message: "Debes indicar un paquete, creditos, o un regalo",
+});
+
+export const redeemGiftSchema = z.object({
+  code: z
+    .string()
+    .min(6, "Codigo invalido")
+    .max(10, "Codigo invalido")
+    .transform((v) => v.toUpperCase().trim()),
 });
 
 export const reviewPaymentSchema = z.object({

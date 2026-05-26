@@ -15,7 +15,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Sparkles, Copy, Check, Upload, X, Loader2 } from "lucide-react";
+import { Sparkles, Copy, Check, Upload, X, Loader2, Gift } from "lucide-react";
+
+const GIFT_UNIT_USD = 10;
+const GIFT_MAX_QTY = 10;
 
 interface PaymentData {
   id: string;
@@ -89,6 +92,13 @@ function RecargasContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const packageId = searchParams.get("pkg");
+  const isGift = searchParams.get("gift") === "1";
+  const giftQtyRaw = Number(searchParams.get("qty") ?? "1");
+  const giftQty = Math.max(
+    1,
+    Math.min(GIFT_MAX_QTY, Number.isFinite(giftQtyRaw) ? giftQtyRaw : 1)
+  );
+  const giftTotalUsd = giftQty * GIFT_UNIT_USD;
 
   const [pkg, setPkg] = useState<PackageDataExtended | null>(null);
   const [offer, setOffer] = useState<OfferData | null>(null);
@@ -153,6 +163,22 @@ function RecargasContent() {
       });
   }, [packageId]);
 
+  // For gift mode, build a synthetic "package" so the rest of the UI works
+  useEffect(() => {
+    if (isGift) {
+      setPkg({
+        id: "GIFT",
+        code: "GIFT",
+        name: `Regalo de ${giftQty} quiniela${giftQty > 1 ? "s" : ""}`,
+        description: `${giftQty} codigo${giftQty > 1 ? "s" : ""} para regalar`,
+        priceUsd: giftTotalUsd,
+        quinielasCount: giftQty,
+        effectiveQuinielas: giftQty,
+        bonusQuinielasOferta: 0,
+      });
+    }
+  }, [isGift, giftQty, giftTotalUsd]);
+
   const fetchPayments = useCallback(async () => {
     try {
       const res = await fetch("/api/payments");
@@ -170,12 +196,12 @@ function RecargasContent() {
     fetchPayments();
   }, [fetchPayments]);
 
-  // If no package selected, redirect to packages page
+  // If no package selected and not a gift purchase, redirect to packages page
   useEffect(() => {
-    if (!packageId) {
+    if (!packageId && !isGift) {
       router.replace("/paquetes");
     }
-  }, [packageId, router]);
+  }, [packageId, isGift, router]);
 
   const handleFileUpload = async (file: File) => {
     setOcrError(null);
@@ -254,7 +280,9 @@ function RecargasContent() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          packageId: pkg.id,
+          packageId: isGift ? undefined : pkg.id,
+          isGift: isGift || undefined,
+          giftQuantity: isGift ? giftQty : undefined,
           amount: pkg.priceUsd,
           amountBs: ocrData?.amountBs ?? undefined,
           paymentDate: paymentDateIso,
@@ -333,14 +361,21 @@ function RecargasContent() {
     <div className="max-w-3xl mx-auto space-y-6">
       <div>
         <Link
-          href="/paquetes"
+          href={isGift ? "/regalar" : "/paquetes"}
           className="text-sm text-muted-foreground hover:text-foreground"
         >
-          &larr; Cambiar paquete
+          &larr; {isGift ? "Cambiar cantidad de regalos" : "Cambiar paquete"}
         </Link>
         <h1 className="text-3xl font-bold tracking-tight mt-2">
-          Reportar Pago
+          {isGift ? "Pago de Regalo" : "Reportar Pago"}
         </h1>
+        {isGift && (
+          <p className="text-muted-foreground text-sm mt-1 flex items-center gap-1">
+            <Gift className="h-4 w-4" />
+            Recibiras {giftQty} codigo{giftQty > 1 ? "s" : ""} de regalo al
+            aprobar el pago
+          </p>
+        )}
       </div>
 
       {/* Saldo a favor: opcion de usar */}
@@ -536,8 +571,17 @@ function RecargasContent() {
         <CardContent>
           {success && (
             <div className="mb-4 rounded-lg bg-green-50 border border-green-200 p-3 text-sm text-green-700">
-              Reporte enviado. El administrador lo revisara pronto y se crearan
-              tus quinielas automaticamente al aprobar.
+              {isGift ? (
+                <>
+                  Reporte enviado. Al aprobar el pago recibiras tus codigos
+                  de regalo en tu <Link href="/perfil" className="underline font-semibold">perfil</Link>.
+                </>
+              ) : (
+                <>
+                  Reporte enviado. El administrador lo revisara pronto y se
+                  crearan tus quinielas automaticamente al aprobar.
+                </>
+              )}
             </div>
           )}
           {submitError && (

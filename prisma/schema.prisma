@@ -53,6 +53,8 @@ model User {
   subQuinielaMemberships SubQuinielaMember[]
   saldosFavor           SaldoFavor[]
   ganadores             Ganador[]
+  giftsPurchased        GiftCode[]             @relation("GiftPurchased")
+  giftsRedeemed         GiftCode[]             @relation("GiftRedeemed")
 
   @@map("users")
 }
@@ -165,6 +167,7 @@ model Quiniela {
   score                  QuinielaScore?
   subQuinielaMemberships SubQuinielaMember[]
   ganador                Ganador?
+  giftCode               GiftCode?
 
   @@index([isTest])
   @@index([isAi])
@@ -379,6 +382,10 @@ model PaymentReport {
   promoApplied      Boolean  @default(false)
   quinielasGranted  Int      @default(0)
 
+  // Gift purchase: when true, approval generates GiftCodes instead of quinielas for the buyer
+  isGift        Boolean @default(false)
+  giftQuantity  Int     @default(0)
+
   // Bs payment tracking (captured from OCR when available)
   amountBs      Decimal?  @db.Decimal(14, 2)
   paymentDate   DateTime?
@@ -397,6 +404,7 @@ model PaymentReport {
 
   saldosOriginados SaldoFavor[] @relation("OrigenSaldo")
   saldosConsumidos SaldoFavor[] @relation("UsoSaldo")
+  giftCodes        GiftCode[]
 
   @@index([userId])
   @@index([status])
@@ -560,6 +568,31 @@ model Ganador {
   @@index([userId])
   @@index([status])
   @@map("ganadores")
+}
+
+// ==========================================
+// GIFT CODES (regalar quinielas individuales)
+// ==========================================
+model GiftCode {
+  id              String    @id @default(cuid())
+  code            String    @unique @db.VarChar(10)
+  purchaserId     String
+  paymentReportId String
+  redeemedById    String?
+  redeemedAt      DateTime?
+  quinielaId      String?   @unique
+  expiresAt       DateTime
+  createdAt       DateTime  @default(now())
+
+  purchaser     User          @relation("GiftPurchased", fields: [purchaserId], references: [id], onDelete: Cascade)
+  redeemedBy    User?         @relation("GiftRedeemed", fields: [redeemedById], references: [id], onDelete: SetNull)
+  paymentReport PaymentReport @relation(fields: [paymentReportId], references: [id], onDelete: Cascade)
+  quiniela      Quiniela?     @relation(fields: [quinielaId], references: [id], onDelete: SetNull)
+
+  @@index([purchaserId])
+  @@index([redeemedById])
+  @@index([code])
+  @@map("gift_codes")
 }
 
 model UsdtConversion {

@@ -266,6 +266,28 @@ export default function PaquetesPage() {
         </div>
       )}
 
+      {/* Gift CTA */}
+      {purchase?.allowed && (
+        <div className="rounded-xl border-2 border-dashed border-pink-300 bg-gradient-to-r from-pink-50 to-orange-50 p-5 text-center">
+          <div className="flex items-center justify-center gap-2 mb-1">
+            <Gift className="h-5 w-5 text-pink-600" />
+            <h3 className="text-lg font-bold text-pink-700">
+              Regala una quiniela
+            </h3>
+          </div>
+          <p className="text-sm text-pink-800/80 mb-3">
+            Compra codigos de regalo para tus panas. Tu pagas, ellos juegan.
+            Hasta 10 codigos por compra.
+          </p>
+          <Link
+            href="/regalar"
+            className="inline-flex items-center justify-center rounded-md bg-pink-600 text-white text-sm font-semibold px-5 py-2 hover:bg-pink-700"
+          >
+            Ir a Regalar
+          </Link>
+        </div>
+      )}
+
       <div className="text-center text-sm text-muted-foreground mt-4">
         Al comprar aceptas los{" "}
         <Link href="/terminos" className="text-primary underline">
