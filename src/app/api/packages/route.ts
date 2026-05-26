@@ -35,7 +35,7 @@ export async function GET() {
   const bonusAvailableForUser = offerActive && !userHasUsedOffer;
   const canPurchase = puedeComprarPaquete();
 
-  const basePricePerQuiniela = 5; // Individual price as reference
+  const basePricePerQuiniela = 10; // Individual price as reference
 
   return NextResponse.json({
     packages: packages.map((p) => {

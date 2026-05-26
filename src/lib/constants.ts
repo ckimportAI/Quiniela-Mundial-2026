@@ -21,7 +21,7 @@ export const APP_DESCRIPTION =
 export const TERMS_VERSION = "1.0";
 export const TERMS_LAST_UPDATE = "2026-04-23";
 export const CONTACT_EMAIL = "quinielapanas@gmail.com";
-export const ENTRY_FEE_USD = 5;
+export const ENTRY_FEE_USD = 10;
 
 // Welcome offer (Oferta de Bienvenida Escalonada)
 // Bonus per package is defined on Package.bonusQuinielasOferta

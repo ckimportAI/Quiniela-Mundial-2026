@@ -106,6 +106,14 @@ export const loginCredentialsSchema = z.object({
   password: z.string().min(1, "Contrasena requerida"),
 });
 
+export const changePasswordSchema = z.object({
+  currentPassword: z.string().optional(),
+  newPassword: z
+    .string()
+    .min(8, "Minimo 8 caracteres")
+    .max(100, "Maximo 100 caracteres"),
+});
+
 export type NicknameInput = z.infer<typeof nicknameSchema>;
 export type PaymentReportInput = z.infer<typeof paymentReportSchema>;
 export type ReviewPaymentInput = z.infer<typeof reviewPaymentSchema>;

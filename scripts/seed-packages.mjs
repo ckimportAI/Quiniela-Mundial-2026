@@ -12,7 +12,7 @@ const packages = [
     code: "INDIVIDUAL",
     name: "Individual",
     description: "Una quiniela para participar",
-    priceUsd: 5,
+    priceUsd: 10,
     quinielasCount: 1,
     bonusQuinielasOferta: 1, // 2x1: doblas (total: 2)
     badge: null,
@@ -21,10 +21,10 @@ const packages = [
   {
     code: "AMIGOS",
     name: "Amigos",
-    description: "3 quinielas - perfecto para amigos",
-    priceUsd: 10,
-    quinielasCount: 3,
-    bonusQuinielasOferta: 0, // combo already includes 1 free; 2x1 does not apply
+    description: "2 quinielas - perfecto para amigos",
+    priceUsd: 15,
+    quinielasCount: 2,
+    bonusQuinielasOferta: 0, // combo discount only; 2x1 does not apply
     badge: "MAS POPULAR",
     sortOrder: 2,
   },
@@ -32,9 +32,9 @@ const packages = [
     code: "FAMILIA",
     name: "Familia",
     description: "5 quinielas - mejor valor",
-    priceUsd: 15,
+    priceUsd: 30,
     quinielasCount: 5,
-    bonusQuinielasOferta: 0, // combo already includes 2 free; 2x1 does not apply
+    bonusQuinielasOferta: 0, // combo discount only; 2x1 does not apply
     badge: "MEJOR VALOR",
     sortOrder: 3,
   },
