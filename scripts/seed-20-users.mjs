@@ -162,10 +162,10 @@ async function main() {
         [userId, u.name, u.nickname, u.email, cedula, phone]
       );
 
-      // Quiniela (marked as test for easy cleanup later)
+      // Quiniela (real participant, not isTest)
       await client.query(
         `INSERT INTO quinielas (id, name, "userId", "isTest", "isAi", "createdAt", "updatedAt")
-         VALUES ($1, $2, $3, true, false, NOW(), NOW())`,
+         VALUES ($1, $2, $3, false, false, NOW(), NOW())`,
         [quinielaId, `${u.nickname}-1`, userId]
       );
 
