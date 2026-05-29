@@ -240,7 +240,12 @@
     text-align: center;
     padding: 18px 32px 24px;
     background: linear-gradient(0deg, #0f172a, transparent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
   }
+  .footer .info-col { text-align: left; }
   .footer .cta {
     font-size: 22px;
     font-weight: 900;
@@ -248,18 +253,38 @@
     margin-bottom: 4px;
   }
   .footer .url-big {
-    font-size: 26px;
+    font-size: 28px;
     font-weight: 900;
     color: #fff;
     background: linear-gradient(90deg, #ec4899, #f59e0b);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+    word-break: break-all;
   }
   .footer .small {
     font-size: 11px;
     color: #64748b;
     margin-top: 12px;
+  }
+  .footer .qr {
+    background: #fff;
+    padding: 10px;
+    border-radius: 12px;
+    flex-shrink: 0;
+  }
+  .footer .qr img {
+    display: block;
+    width: 120px;
+    height: 120px;
+  }
+  .footer .qr-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: #64748b;
+    text-align: center;
+    margin-top: 4px;
+    letter-spacing: 1px;
   }
 </style>
 </head>
@@ -348,9 +373,17 @@
   </div>
 
   <div class="footer">
-    <div class="cta">INSCRIBETE HOY!</div>
-    <div class="url-big">quinielapanas.com</div>
-    <div class="small">Reglas oficiales y T&amp;C en quinielapanas.com/terminos</div>
+    <div class="info-col">
+      <div class="cta">INSCRIBETE HOY!</div>
+      <div class="url-big">https://quinielapanas.com</div>
+      <div class="small">Reglas oficiales y T&amp;C en quinielapanas.com/terminos</div>
+    </div>
+    <div>
+      <div class="qr">
+        <img src="https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=0&data=https%3A%2F%2Fquinielapanas.com" alt="QR quinielapanas.com">
+      </div>
+      <div class="qr-label">ESCANEAME</div>
+    </div>
   </div>
 
 </div>

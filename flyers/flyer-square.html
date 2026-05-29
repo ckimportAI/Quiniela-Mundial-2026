@@ -118,10 +118,23 @@
     letter-spacing: 1px;
   }
   .url {
-    margin-top: 14px;
-    font-size: 28px;
+    margin-top: 10px;
+    font-size: 26px;
     font-weight: 900;
   }
+  .bottom-row {
+    margin-top: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+  }
+  .qr {
+    background: #fff;
+    padding: 8px;
+    border-radius: 12px;
+  }
+  .qr img { display: block; width: 120px; height: 120px; }
   .small {
     margin-top: 8px;
     font-size: 12px;
@@ -153,7 +166,16 @@
 
   <div class="bottom">
     <div class="cta">INSCRIBETE - CIERRA 11 JUN 5PM</div>
-    <div class="url">quinielapanas.com</div>
+    <div class="url">https://quinielapanas.com</div>
+    <div class="bottom-row">
+      <div class="qr">
+        <img src="https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=0&data=https%3A%2F%2Fquinielapanas.com" alt="QR">
+      </div>
+      <div style="text-align:left">
+        <div style="font-size:13px;font-weight:800;color:#fbbf24;letter-spacing:2px">ESCANEA</div>
+        <div style="font-size:14px;opacity:0.9;margin-top:2px">o entra a la web</div>
+      </div>
+    </div>
     <div class="small">📱 Pago Movil · Zelle · Binance Pay</div>
   </div>
 </div>
