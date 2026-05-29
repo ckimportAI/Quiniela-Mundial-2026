@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>QuinielaPanas - Mundial 2026</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #1a1a1a;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 20px;
+    min-height: 100vh;
+  }
+  .flyer {
+    width: 810px;
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 40%, #0c4a6e 100%);
+    color: #fff;
+    border-radius: 24px;
+    overflow: hidden;
+    box-shadow: 0 25px 60px rgba(0,0,0,0.5);
+    position: relative;
+  }
+  /* Soccer ball pattern overlay */
+  .flyer::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(circle at 10% 20%, rgba(255,215,0,0.08) 0, transparent 40%),
+      radial-gradient(circle at 90% 90%, rgba(236,72,153,0.10) 0, transparent 50%);
+    pointer-events: none;
+  }
+  .header {
+    text-align: center;
+    padding: 36px 32px 18px;
+    background: linear-gradient(90deg, #ec4899 0%, #f59e0b 50%, #facc15 100%);
+    position: relative;
+  }
+  .header .badge {
+    display: inline-block;
+    background: rgba(0,0,0,0.25);
+    color: #fff;
+    padding: 4px 14px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    margin-bottom: 10px;
+  }
+  .header h1 {
+    font-size: 48px;
+    font-weight: 900;
+    line-height: 1;
+    text-shadow: 2px 2px 0 rgba(0,0,0,0.25);
+  }
+  .header h2 {
+    font-size: 24px;
+    font-weight: 700;
+    margin-top: 4px;
+    color: #fff;
+    text-shadow: 1px 1px 0 rgba(0,0,0,0.3);
+  }
+  .header .url {
+    margin-top: 12px;
+    font-size: 18px;
+    font-weight: 700;
+    color: #fff;
+    background: rgba(0,0,0,0.35);
+    display: inline-block;
+    padding: 6px 18px;
+    border-radius: 999px;
+  }
+
+  .prizes {
+    padding: 28px 32px 24px;
+    text-align: center;
+  }
+  .prizes-title {
+    font-size: 14px;
+    color: #fbbf24;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    font-weight: 800;
+    margin-bottom: 14px;
+  }
+  .prizes-row {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+  }
+  .prize {
+    flex: 1;
+    max-width: 220px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 100%);
+    border: 2px solid rgba(255,215,0,0.4);
+    border-radius: 16px;
+    padding: 18px 8px;
+  }
+  .prize .medal { font-size: 36px; line-height: 1; }
+  .prize .place { font-size: 11px; opacity: 0.7; margin-top: 4px; text-transform: uppercase; letter-spacing: 1px; }
+  .prize .amount { font-size: 36px; font-weight: 900; margin-top: 4px; color: #fbbf24; }
+  .prize .currency { font-size: 14px; color: #cbd5e1; }
+  .prizes-note {
+    margin-top: 12px;
+    font-size: 12px;
+    color: #cbd5e1;
+    font-style: italic;
+  }
+
+  .packages {
+    padding: 8px 32px 24px;
+  }
+  .packages-title {
+    text-align: center;
+    font-size: 14px;
+    color: #fbbf24;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    font-weight: 800;
+    margin-bottom: 14px;
+  }
+  .pkg-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+  }
+  .pkg {
+    background: rgba(255,255,255,0.07);
+    border-radius: 14px;
+    padding: 14px 10px;
+    text-align: center;
+    border: 2px solid transparent;
+    position: relative;
+  }
+  .pkg.popular {
+    border-color: #f59e0b;
+    background: rgba(245,158,11,0.12);
+  }
+  .pkg .pkg-badge {
+    position: absolute;
+    top: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #f59e0b;
+    color: #000;
+    font-size: 10px;
+    font-weight: 800;
+    padding: 3px 10px;
+    border-radius: 999px;
+    letter-spacing: 1px;
+  }
+  .pkg-name { font-size: 14px; font-weight: 700; opacity: 0.85; text-transform: uppercase; letter-spacing: 1px;}
+  .pkg-price { font-size: 32px; font-weight: 900; margin: 4px 0; }
+  .pkg-price small { font-size: 14px; opacity: 0.6; font-weight: 600; }
+  .pkg-qty { font-size: 13px; color: #cbd5e1; }
+  .pkg-extra { font-size: 11px; color: #34d399; font-weight: 700; margin-top: 4px; }
+
+  .offer-banner {
+    margin: 18px 32px;
+    background: linear-gradient(90deg, #facc15, #f59e0b, #ec4899);
+    color: #1a1a1a;
+    border-radius: 14px;
+    padding: 14px 18px;
+    text-align: center;
+    font-weight: 800;
+  }
+  .offer-banner .title { font-size: 18px; }
+  .offer-banner .sub { font-size: 13px; font-weight: 600; opacity: 0.85; margin-top: 2px;}
+
+  .features {
+    padding: 4px 32px 22px;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px 16px;
+  }
+  .feature {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: #e2e8f0;
+  }
+  .feature .ico {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: rgba(52, 211, 153, 0.2);
+    color: #34d399;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 900;
+    flex-shrink: 0;
+  }
+
+  .pay-methods {
+    background: rgba(0,0,0,0.3);
+    padding: 16px 32px;
+    text-align: center;
+    border-top: 1px solid rgba(255,255,255,0.08);
+  }
+  .pay-methods .label {
+    font-size: 11px;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+  .pay-methods .methods {
+    font-size: 14px;
+    color: #fff;
+    font-weight: 600;
+  }
+
+  .deadline {
+    text-align: center;
+    padding: 16px 32px;
+    background: rgba(239, 68, 68, 0.15);
+    border-top: 1px solid rgba(239, 68, 68, 0.3);
+  }
+  .deadline .label {
+    font-size: 11px;
+    color: #fca5a5;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    font-weight: 700;
+  }
+  .deadline .date {
+    font-size: 20px;
+    font-weight: 900;
+    margin-top: 2px;
+  }
+
+  .footer {
+    text-align: center;
+    padding: 18px 32px 24px;
+    background: linear-gradient(0deg, #0f172a, transparent);
+  }
+  .footer .cta {
+    font-size: 22px;
+    font-weight: 900;
+    color: #fbbf24;
+    margin-bottom: 4px;
+  }
+  .footer .url-big {
+    font-size: 26px;
+    font-weight: 900;
+    color: #fff;
+    background: linear-gradient(90deg, #ec4899, #f59e0b);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .footer .small {
+    font-size: 11px;
+    color: #64748b;
+    margin-top: 12px;
+  }
+</style>
+</head>
+<body>
+<div class="flyer">
+
+  <div class="header">
+    <span class="badge">QUINIELA OFICIAL</span>
+    <h1>QUINIELAPANAS</h1>
+    <h2>⚽ MUNDIAL FIFA 2026 🏆</h2>
+    <span class="url">quinielapanas.com</span>
+  </div>
+
+  <div class="prizes">
+    <div class="prizes-title">★ Premios Garantizados ★</div>
+    <div class="prizes-row">
+      <div class="prize">
+        <div class="medal">🥇</div>
+        <div class="place">1er Lugar</div>
+        <div class="amount">$500</div>
+        <div class="currency">USD</div>
+      </div>
+      <div class="prize">
+        <div class="medal">🥈</div>
+        <div class="place">2do Lugar</div>
+        <div class="amount">$250</div>
+        <div class="currency">USD</div>
+      </div>
+      <div class="prize">
+        <div class="medal">🥉</div>
+        <div class="place">3er Lugar</div>
+        <div class="amount">$150</div>
+        <div class="currency">USD</div>
+      </div>
+    </div>
+    <div class="prizes-note">+ Pool del 70% del total recaudado</div>
+  </div>
+
+  <div class="packages">
+    <div class="packages-title">Elige tu paquete</div>
+    <div class="pkg-row">
+      <div class="pkg">
+        <div class="pkg-name">Individual</div>
+        <div class="pkg-price">$10<small> USD</small></div>
+        <div class="pkg-qty">1 quiniela</div>
+        <div class="pkg-extra">+1 GRATIS con 2x1</div>
+      </div>
+      <div class="pkg popular">
+        <span class="pkg-badge">MAS POPULAR</span>
+        <div class="pkg-name">Amigos</div>
+        <div class="pkg-price">$15<small> USD</small></div>
+        <div class="pkg-qty">2 quinielas</div>
+        <div class="pkg-extra">Ahorras $5</div>
+      </div>
+      <div class="pkg">
+        <div class="pkg-name">Familia</div>
+        <div class="pkg-price">$30<small> USD</small></div>
+        <div class="pkg-qty">5 quinielas</div>
+        <div class="pkg-extra">Ahorras $20</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="offer-banner">
+    <div class="title">🎁 OFERTA DE BIENVENIDA 2x1</div>
+    <div class="sub">Tu primer Individual: pagas 1 y recibes 2 quinielas (hasta 4 jun)</div>
+  </div>
+
+  <div class="features">
+    <div class="feature"><span class="ico">✓</span> 104 partidos para predecir</div>
+    <div class="feature"><span class="ico">✓</span> 2 comodines x2 puntos</div>
+    <div class="feature"><span class="ico">✓</span> Grupos privados con amigos</div>
+    <div class="feature"><span class="ico">✓</span> Premios pagados en Bs</div>
+    <div class="feature"><span class="ico">✓</span> Predicciones de torneo</div>
+    <div class="feature"><span class="ico">✓</span> Regala quinielas a tus panas</div>
+  </div>
+
+  <div class="pay-methods">
+    <div class="label">Metodos de pago</div>
+    <div class="methods">📱 Pago Movil &middot; 💵 Zelle &middot; 🪙 Binance Pay</div>
+  </div>
+
+  <div class="deadline">
+    <div class="label">⏰ Cierre de inscripciones</div>
+    <div class="date">11 de junio · 5:00 pm</div>
+  </div>
+
+  <div class="footer">
+    <div class="cta">INSCRIBETE HOY!</div>
+    <div class="url-big">quinielapanas.com</div>
+    <div class="small">Reglas oficiales y T&amp;C en quinielapanas.com/terminos</div>
+  </div>
+
+</div>
+</body>
+</html>
