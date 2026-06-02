@@ -59,6 +59,7 @@ export async function GET(request: NextRequest) {
         awayScore: true,
         predictedHomeTeamId: true,
         predictedAwayTeamId: true,
+        winnerOnPenaltiesTeamId: true,
       },
     }),
     prisma.tournamentPrediction.findMany({
@@ -85,6 +86,7 @@ export async function GET(request: NextRequest) {
       matchId: p.matchId,
       homeScore: p.homeScore,
       awayScore: p.awayScore,
+      winnerOnPenaltiesTeamId: p.winnerOnPenaltiesTeamId,
     }));
   const resolved = resolveBracket(matchInfos, predictionInfos);
 
@@ -156,6 +158,7 @@ export async function POST(request: NextRequest) {
     awayScore: number | null;
     predictedHomeTeamId?: string | null;
     predictedAwayTeamId?: string | null;
+    winnerOnPenaltiesTeamId?: string | null;
   }> = Array.isArray(body.matchPicks) ? body.matchPicks : [];
   const tournamentPicks: Array<{
     type: string;
@@ -196,12 +199,16 @@ export async function POST(request: NextRequest) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const ops: any[] = [];
   for (const p of validPicks) {
+    // Only persist penalty winner when it's actually a tie
+    const isTie = p.homeScore === p.awayScore;
+    const penaltyWinner = isTie ? p.winnerOnPenaltiesTeamId ?? null : null;
     ops.push(
       prisma.prediction.upsert({
         where: { quinielaId_matchId: { quinielaId, matchId: p.matchId } },
         update: {
           homeScore: p.homeScore!,
           awayScore: p.awayScore!,
+          winnerOnPenaltiesTeamId: penaltyWinner,
         },
         create: {
           userId: session.user.id,
@@ -209,6 +216,7 @@ export async function POST(request: NextRequest) {
           matchId: p.matchId,
           homeScore: p.homeScore!,
           awayScore: p.awayScore!,
+          winnerOnPenaltiesTeamId: penaltyWinner,
         },
       })
     );

@@ -27,6 +27,7 @@ export interface PredictionInfo {
   matchId: string;
   homeScore: number;
   awayScore: number;
+  winnerOnPenaltiesTeamId?: string | null;
 }
 
 export interface GroupStanding {
@@ -297,7 +298,15 @@ export function resolveBracket(
     if (!pred) return null;
     if (pred.homeScore > pred.awayScore) return slot.homeTeamId;
     if (pred.awayScore > pred.homeScore) return slot.awayTeamId;
-    return null; // tie -> TBD
+    // Tie -> use penalty winner if set and valid
+    if (
+      pred.winnerOnPenaltiesTeamId &&
+      (pred.winnerOnPenaltiesTeamId === slot.homeTeamId ||
+        pred.winnerOnPenaltiesTeamId === slot.awayTeamId)
+    ) {
+      return pred.winnerOnPenaltiesTeamId;
+    }
+    return null;
   };
 
   const matchLoser = (matchNumber: number): string | null => {
@@ -307,7 +316,14 @@ export function resolveBracket(
     if (!pred) return null;
     if (pred.homeScore > pred.awayScore) return slot.awayTeamId;
     if (pred.awayScore > pred.homeScore) return slot.homeTeamId;
-    return null; // tie -> TBD
+    // Tie -> loser = the one NOT picked on penalties
+    if (
+      pred.winnerOnPenaltiesTeamId === slot.homeTeamId
+    ) return slot.awayTeamId;
+    if (
+      pred.winnerOnPenaltiesTeamId === slot.awayTeamId
+    ) return slot.homeTeamId;
+    return null;
   };
 
   // Resolve in match-number order so previous results are available

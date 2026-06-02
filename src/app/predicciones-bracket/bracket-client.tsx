@@ -42,6 +42,7 @@ interface MatchPick {
   awayScore: string;
   predictedHomeTeamId: string;
   predictedAwayTeamId: string;
+  winnerOnPenaltiesTeamId: string;
 }
 
 const PHASE_LABELS: Record<Phase, string> = {
@@ -125,6 +126,7 @@ export default function BracketClient({
           awayScore: "",
           predictedHomeTeamId: m.homeTeam?.id ?? "",
           predictedAwayTeamId: m.awayTeam?.id ?? "",
+          winnerOnPenaltiesTeamId: "",
         };
       }
       for (const p of d.predictions ?? []) {
@@ -134,6 +136,7 @@ export default function BracketClient({
             awayScore: String(p.awayScore ?? ""),
             predictedHomeTeamId: p.predictedHomeTeamId ?? initial[p.matchId].predictedHomeTeamId,
             predictedAwayTeamId: p.predictedAwayTeamId ?? initial[p.matchId].predictedAwayTeamId,
+            winnerOnPenaltiesTeamId: p.winnerOnPenaltiesTeamId ?? "",
           };
         }
       }
@@ -186,6 +189,7 @@ export default function BracketClient({
         awayScore: p.awayScore === "" ? null : Number(p.awayScore),
         predictedHomeTeamId: p.predictedHomeTeamId || null,
         predictedAwayTeamId: p.predictedAwayTeamId || null,
+        winnerOnPenaltiesTeamId: p.winnerOnPenaltiesTeamId || null,
       }))
       .filter((p) => p.homeScore !== null && p.awayScore !== null);
 
@@ -482,6 +486,36 @@ function PhaseSection({
                   )}
                 </div>
               </div>
+
+              {/* Penalty winner picker (KO only, only when scores are a tie and both teams known) */}
+              {!isGroupStage &&
+                pick.homeScore !== "" &&
+                pick.awayScore !== "" &&
+                pick.homeScore === pick.awayScore &&
+                m.resolvedHomeTeam &&
+                m.resolvedAwayTeam && (
+                  <div className="pt-2 border-t flex items-center gap-2 text-xs">
+                    <span className="text-muted-foreground whitespace-nowrap">
+                      Pasa por penales:
+                    </span>
+                    <select
+                      value={pick.winnerOnPenaltiesTeamId}
+                      onChange={(e) =>
+                        updatePick(m.id, { winnerOnPenaltiesTeamId: e.target.value })
+                      }
+                      disabled={disabled}
+                      className="flex-1 rounded-md border border-input bg-background px-2 py-1 text-xs"
+                    >
+                      <option value="">-- elegir --</option>
+                      <option value={m.resolvedHomeTeam.id}>
+                        {m.resolvedHomeTeam.name}
+                      </option>
+                      <option value={m.resolvedAwayTeam.id}>
+                        {m.resolvedAwayTeam.name}
+                      </option>
+                    </select>
+                  </div>
+                )}
             </CardContent>
           </Card>
         );
