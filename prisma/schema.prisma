@@ -35,6 +35,9 @@ model User {
   ofertaBienvenidaUsada Boolean   @default(false)
   fechaPrimeraCompra    DateTime?
 
+  // Liga membership (private isolated tournament). Once set, locked.
+  ligaId  String?
+
   // Saldo a favor (Bs) acumulado por sobrepagos
   saldoBs Decimal @default(0) @db.Decimal(14, 2)
   role          Role      @default(PARTICIPANT)
@@ -55,7 +58,10 @@ model User {
   ganadores             Ganador[]
   giftsPurchased        GiftCode[]             @relation("GiftPurchased")
   giftsRedeemed         GiftCode[]             @relation("GiftRedeemed")
+  liga                  Liga?                  @relation("LigaMembers", fields: [ligaId], references: [id], onDelete: SetNull)
+  ownedLigas            Liga[]                 @relation("LigaOwner")
 
+  @@index([ligaId])
   @@map("users")
 }
 
@@ -154,6 +160,7 @@ model Quiniela {
   id          String   @id @default(cuid())
   name        String
   userId      String
+  ligaId      String?
   isTest      Boolean  @default(false)
   isAi        Boolean  @default(false)
   aiProvider  String?  @db.VarChar(30)
@@ -168,8 +175,10 @@ model Quiniela {
   subQuinielaMemberships SubQuinielaMember[]
   ganador                Ganador?
   giftCode               GiftCode?
+  liga                   Liga?                 @relation(fields: [ligaId], references: [id], onDelete: SetNull)
 
   @@index([isTest])
+  @@index([ligaId])
   @@index([isAi])
   @@map("quinielas")
 }
@@ -386,6 +395,9 @@ model PaymentReport {
   isGift        Boolean @default(false)
   giftQuantity  Int     @default(0)
 
+  // Liga scoping (private group). Approval logic differs (no welcome bonus, custom price)
+  ligaId        String?
+
   // Bs payment tracking (captured from OCR when available)
   amountBs      Decimal?  @db.Decimal(14, 2)
   paymentDate   DateTime?
@@ -405,9 +417,11 @@ model PaymentReport {
   saldosOriginados SaldoFavor[] @relation("OrigenSaldo")
   saldosConsumidos SaldoFavor[] @relation("UsoSaldo")
   giftCodes        GiftCode[]
+  liga             Liga?        @relation(fields: [ligaId], references: [id], onDelete: SetNull)
 
   @@index([userId])
   @@index([status])
+  @@index([ligaId])
   @@map("payment_reports")
 }
 
@@ -593,6 +607,45 @@ model GiftCode {
   @@index([redeemedById])
   @@index([code])
   @@map("gift_codes")
+}
+
+// ==========================================
+// LIGAS (private isolated tournaments / multi-tenant lite)
+// ==========================================
+model Liga {
+  id           String   @id @default(cuid())
+  slug         String   @unique @db.VarChar(40)
+  name         String   @db.VarChar(80)
+  description  String?  @db.VarChar(300)
+  ownerId      String
+
+  // Pricing (single package model: priceUsd buys quinielasPerPurchase quinielas)
+  priceUsd              Decimal @db.Decimal(10, 2) @default(10)
+  quinielasPerPurchase  Int     @default(1)
+
+  // Owner's payment methods (members pay him directly)
+  pagoMovilPhone  String? @db.VarChar(20)
+  pagoMovilCedula String? @db.VarChar(20)
+  pagoMovilBank   String? @db.VarChar(50)
+  zelleEmail      String? @db.VarChar(100)
+  zelleName       String? @db.VarChar(100)
+  paymentNotes    String? @db.VarChar(500)
+
+  // Free-text prize description (no dynamic pool in MVP)
+  prizesText      String? @db.Text
+
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  owner          User            @relation("LigaOwner", fields: [ownerId], references: [id])
+  members        User[]          @relation("LigaMembers")
+  quinielas      Quiniela[]
+  paymentReports PaymentReport[]
+
+  @@index([slug])
+  @@index([ownerId])
+  @@map("ligas")
 }
 
 model UsdtConversion {

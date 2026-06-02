@@ -61,25 +61,26 @@ export default async function AdminPage() {
   ] = await Promise.all([
     prisma.paymentReport.groupBy({
       by: ["status"],
+      where: { ligaId: null },
       _count: { _all: true },
     }),
     prisma.paymentReport.aggregate({
-      where: { status: "APPROVED" },
+      where: { status: "APPROVED", ligaId: null },
       _sum: { amount: true },
     }),
     prisma.paymentReport.aggregate({
-      where: { status: "APPROVED", amountBs: { not: null } },
+      where: { status: "APPROVED", amountBs: { not: null }, ligaId: null },
       _sum: { amountBs: true },
     }),
-    prisma.user.count(),
-    prisma.user.count({ where: { NOT: { nickname: null } } }),
-    prisma.quiniela.count(),
+    prisma.user.count({ where: { ligaId: null } }),
+    prisma.user.count({ where: { NOT: { nickname: null }, ligaId: null } }),
+    prisma.quiniela.count({ where: { ligaId: null } }),
     prisma.quiniela.count({
-      where: { predictions: { some: {} } },
+      where: { predictions: { some: {} }, ligaId: null },
     }),
     prisma.paymentReport.groupBy({
       by: ["packageId"],
-      where: { status: "APPROVED" },
+      where: { status: "APPROVED", ligaId: null },
       _count: { _all: true },
       _sum: { amount: true, credits: true },
     }),
@@ -87,6 +88,7 @@ export default async function AdminPage() {
       where: {
         promoApplied: true,
         status: { in: ["PENDING", "APPROVED"] },
+        ligaId: null,
       },
       _count: { _all: true },
     }),
@@ -393,6 +395,12 @@ export default async function AdminPage() {
             icon={Wallet}
             title="Pool USDT"
             description="Registra conversiones Bs -> USDT del pool."
+          />
+          <ActionCard
+            href="/admin/ligas"
+            icon={Users}
+            title="Ligas privadas"
+            description="Grupos aislados administrados por terceros."
           />
         </div>
       </div>

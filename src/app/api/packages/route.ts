@@ -15,6 +15,56 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   const session = await getServerSession(authOptions);
 
+  // Liga member sees only their liga's single package
+  let userLiga: { ligaId: string | null } | null = null;
+  if (session?.user?.id) {
+    userLiga = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { ligaId: true },
+    });
+  }
+
+  if (userLiga?.ligaId) {
+    const liga = await prisma.liga.findUnique({
+      where: { id: userLiga.ligaId },
+    });
+    if (liga && liga.active) {
+      const price = Number(liga.priceUsd);
+      const qty = liga.quinielasPerPurchase;
+      return NextResponse.json({
+        isLiga: true,
+        ligaName: liga.name,
+        ligaSlug: liga.slug,
+        ligaPaymentInfo: {
+          pagoMovilPhone: liga.pagoMovilPhone,
+          pagoMovilCedula: liga.pagoMovilCedula,
+          pagoMovilBank: liga.pagoMovilBank,
+          zelleEmail: liga.zelleEmail,
+          zelleName: liga.zelleName,
+          paymentNotes: liga.paymentNotes,
+        },
+        packages: [
+          {
+            id: `LIGA:${liga.id}`,
+            code: "LIGA_PKG",
+            name: liga.name,
+            description: liga.description,
+            priceUsd: price,
+            quinielasCount: qty,
+            bonusQuinielasOferta: 0,
+            effectiveQuinielas: qty,
+            pricePerQuiniela: price / qty,
+            savingsVsIndividual: 0,
+            comboFreeQuinielas: 0,
+            badge: null,
+          },
+        ],
+        offer: { active: false, availableForUser: false, userHasUsedOffer: false },
+        purchase: { allowed: liga.active && puedeComprarPaquete(), deadline: FIN_COMPRA_PAQUETES.toISOString() },
+      });
+    }
+  }
+
   const packages = await prisma.package.findMany({
     where: { active: true },
     orderBy: { sortOrder: "asc" },
@@ -31,13 +81,13 @@ export async function GET() {
   }
 
   const offerActive = isOfertaBienvenidaActive();
-  // User can benefit only if: offer is active AND user has NOT used it yet
   const bonusAvailableForUser = offerActive && !userHasUsedOffer;
   const canPurchase = puedeComprarPaquete();
 
-  const basePricePerQuiniela = 10; // Individual price as reference
+  const basePricePerQuiniela = 10;
 
   return NextResponse.json({
+    isLiga: false,
     packages: packages.map((p) => {
       const effectiveQuinielas = bonusAvailableForUser
         ? p.quinielasCount + p.bonusQuinielasOferta
@@ -45,8 +95,6 @@ export async function GET() {
       const pricePerQuiniela = Number(p.priceUsd) / effectiveQuinielas;
       const savingsVsIndividual =
         basePricePerQuiniela * effectiveQuinielas - Number(p.priceUsd);
-      // Quinielas "gratis" inherentes al combo (independiente del 2x1)
-      // Por ejemplo Amigos: 3 quinielas pero pagas precio de 2 (1 gratis)
       const comboFreeQuinielas =
         p.quinielasCount - Math.round(Number(p.priceUsd) / basePricePerQuiniela);
 

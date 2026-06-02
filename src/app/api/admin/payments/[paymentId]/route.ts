@@ -37,6 +37,14 @@ export async function PATCH(
     return NextResponse.json({ error: "Pago no encontrado" }, { status: 404 });
   }
 
+  // Platform admin cannot touch liga payments
+  if (payment.ligaId) {
+    return NextResponse.json(
+      { error: "Este pago pertenece a una liga privada" },
+      { status: 403 }
+    );
+  }
+
   if (payment.status !== "PENDING") {
     return NextResponse.json(
       { error: "Este pago ya fue revisado" },

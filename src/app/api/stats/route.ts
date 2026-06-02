@@ -5,10 +5,11 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
+    // Main platform stats exclude liga members/quinielas
     const [users, quinielas, predictions] = await Promise.all([
-      prisma.user.count(),
-      prisma.quiniela.count(),
-      prisma.prediction.count(),
+      prisma.user.count({ where: { ligaId: null } }),
+      prisma.quiniela.count({ where: { ligaId: null } }),
+      prisma.prediction.count({ where: { quiniela: { ligaId: null } } }),
     ]);
 
     return NextResponse.json({ users, quinielas, predictions });

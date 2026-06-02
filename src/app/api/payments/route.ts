@@ -8,7 +8,7 @@ import {
   puedeComprarPaquete,
 } from "@/lib/constants";
 
-// GET: User's payment history
+// GET: User's payment history (scoped by liga if member)
 export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
@@ -19,6 +19,7 @@ export async function GET() {
     where: { userId: session.user.id },
     orderBy: { createdAt: "desc" },
   });
+
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
@@ -105,9 +106,47 @@ export async function POST(request: NextRequest) {
   const giftQuantity = isGift ? (parsed.data.giftQuantity ?? 0) : 0;
 
   // ----------------------------------------------------------
+  // LIGA path: user belongs to a private liga -> custom price + scoping
+  // ----------------------------------------------------------
+  const memberInfo = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { ligaId: true },
+  });
+  const memberLigaId = memberInfo?.ligaId ?? null;
+
+  let ligaPriceUsd = 0;
+  let ligaQuinielasPerPurchase = 0;
+  if (memberLigaId) {
+    if (isGift) {
+      return NextResponse.json(
+        { error: "Los miembros de una liga no pueden comprar regalos" },
+        { status: 400 }
+      );
+    }
+    const liga = await prisma.liga.findUnique({ where: { id: memberLigaId } });
+    if (!liga || !liga.active) {
+      return NextResponse.json(
+        { error: "Tu liga no esta activa" },
+        { status: 400 }
+      );
+    }
+    ligaPriceUsd = Number(liga.priceUsd);
+    ligaQuinielasPerPurchase = liga.quinielasPerPurchase;
+    if (Math.abs(parsed.data.amount - ligaPriceUsd) > 0.01) {
+      return NextResponse.json(
+        { error: `Monto incorrecto. Esperado: $${ligaPriceUsd.toFixed(2)}` },
+        { status: 400 }
+      );
+    }
+    credits = ligaQuinielasPerPurchase;
+  }
+
+  // ----------------------------------------------------------
   // GIFT path: $10 per quiniela, no welcome bonus applies
   // ----------------------------------------------------------
-  if (isGift) {
+  if (memberLigaId) {
+    // Liga members: skip gift + package branches entirely
+  } else if (isGift) {
     if (giftQuantity < 1 || giftQuantity > 10) {
       return NextResponse.json(
         { error: "La cantidad de regalos debe ser entre 1 y 10" },
@@ -194,7 +233,8 @@ export async function POST(request: NextRequest) {
   const payment = await prisma.paymentReport.create({
     data: {
       userId: session.user.id,
-      packageId: parsed.data.packageId ?? null,
+      packageId: memberLigaId ? null : parsed.data.packageId ?? null,
+      ligaId: memberLigaId ?? null,
       credits,
       amount: parsed.data.amount,
       amountBs: parsed.data.amountBs ?? null,

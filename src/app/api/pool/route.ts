@@ -9,9 +9,9 @@ const POOL_PERCENTAGE = 0.7; // 70% of total goes to the pool
 export async function GET() {
   const showOnHome = await getBooleanConfig(CONFIG_KEYS.SHOW_POOL_HOME);
 
-  // Sum amount of APPROVED payment reports (in USD)
+  // Sum amount of APPROVED payment reports (in USD) excluding liga payments
   const agg = await prisma.paymentReport.aggregate({
-    where: { status: "APPROVED" },
+    where: { status: "APPROVED", ligaId: null },
     _sum: { amount: true },
   });
 

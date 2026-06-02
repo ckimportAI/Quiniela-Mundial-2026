@@ -20,6 +20,23 @@ export async function POST(request: NextRequest) {
   const { email, password } = parsed.data;
   const normalizedEmail = email.trim().toLowerCase();
 
+  // Optional liga slug to auto-assign membership during signup
+  const ligaSlugRaw = typeof body.ligaSlug === "string" ? body.ligaSlug.trim().toLowerCase() : null;
+  let ligaIdToAssign: string | null = null;
+  if (ligaSlugRaw) {
+    const liga = await prisma.liga.findUnique({
+      where: { slug: ligaSlugRaw },
+      select: { id: true, active: true },
+    });
+    if (!liga || !liga.active) {
+      return NextResponse.json(
+        { error: "La liga no existe o esta inactiva" },
+        { status: 404 }
+      );
+    }
+    ligaIdToAssign = liga.id;
+  }
+
   // Check if user already exists
   const existing = await prisma.user.findUnique({
     where: { email: normalizedEmail },
@@ -48,9 +65,13 @@ export async function POST(request: NextRequest) {
       email: normalizedEmail,
       passwordHash,
       name: normalizedEmail.split("@")[0],
+      ligaId: ligaIdToAssign,
     },
-    select: { id: true, email: true },
+    select: { id: true, email: true, ligaId: true },
   });
 
-  return NextResponse.json({ success: true, userId: user.id, email: user.email }, { status: 201 });
+  return NextResponse.json(
+    { success: true, userId: user.id, email: user.email, ligaId: user.ligaId },
+    { status: 201 }
+  );
 }

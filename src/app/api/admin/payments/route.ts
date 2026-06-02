@@ -12,7 +12,12 @@ export async function GET(request: NextRequest) {
 
   const status = request.nextUrl.searchParams.get("status");
 
-  const where = status ? { status: status as "PENDING" | "APPROVED" | "REJECTED" } : {};
+  // Platform admin only sees non-liga payments
+  const where: {
+    status?: "PENDING" | "APPROVED" | "REJECTED";
+    ligaId: null;
+  } = { ligaId: null };
+  if (status) where.status = status as "PENDING" | "APPROVED" | "REJECTED";
 
   const payments = await prisma.paymentReport.findMany({
     where,
@@ -30,9 +35,9 @@ export async function GET(request: NextRequest) {
     ],
   });
 
-  // Count pending for badge
+  // Count pending for badge (exclude liga payments)
   const pendingCount = await prisma.paymentReport.count({
-    where: { status: "PENDING" },
+    where: { status: "PENDING", ligaId: null },
   });
 
   return NextResponse.json({ payments, pendingCount });
