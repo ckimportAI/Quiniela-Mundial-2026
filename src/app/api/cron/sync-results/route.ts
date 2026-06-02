@@ -101,12 +101,27 @@ async function syncOne(fixture: ApiFootballFixture): Promise<
   });
 
   for (const p of predictions) {
-    const points = calculateMatchPoints(
-      { homeScore: p.homeScore, awayScore: p.awayScore },
-      { homeScore: score.home, awayScore: score.away },
-      dbMatch.phase as MatchPhase,
-      p.isWildcard
-    );
+    let pointsBlocked = false;
+    if (p.predictedHomeTeamId || p.predictedAwayTeamId) {
+      const homeOk = p.predictedHomeTeamId
+        ? p.predictedHomeTeamId === dbMatch.homeTeamId
+        : true;
+      const awayOk = p.predictedAwayTeamId
+        ? p.predictedAwayTeamId === dbMatch.awayTeamId
+        : true;
+      const swappedOk =
+        p.predictedHomeTeamId === dbMatch.awayTeamId &&
+        p.predictedAwayTeamId === dbMatch.homeTeamId;
+      if (!swappedOk && !(homeOk && awayOk)) pointsBlocked = true;
+    }
+    const points = pointsBlocked
+      ? 0
+      : calculateMatchPoints(
+          { homeScore: p.homeScore, awayScore: p.awayScore },
+          { homeScore: score.home, awayScore: score.away },
+          dbMatch.phase as MatchPhase,
+          p.isWildcard
+        );
     await prisma.prediction.update({
       where: { id: p.id },
       data: { points },

@@ -44,12 +44,30 @@ export async function POST(request: NextRequest) {
   });
 
   for (const prediction of predictions) {
-    const points = calculateMatchPoints(
-      { homeScore: prediction.homeScore, awayScore: prediction.awayScore },
-      { homeScore, awayScore },
-      match.phase as MatchPhase,
-      prediction.isWildcard
-    );
+    // Bracket pick guard: liga members predict KO teams in advance; if their
+    // predicted teams don't match the actual match teams, score is 0.
+    let pointsBlocked = false;
+    if (prediction.predictedHomeTeamId || prediction.predictedAwayTeamId) {
+      const homeOk = prediction.predictedHomeTeamId
+        ? prediction.predictedHomeTeamId === match.homeTeamId
+        : true;
+      const awayOk = prediction.predictedAwayTeamId
+        ? prediction.predictedAwayTeamId === match.awayTeamId
+        : true;
+      const swappedOk =
+        prediction.predictedHomeTeamId === match.awayTeamId &&
+        prediction.predictedAwayTeamId === match.homeTeamId;
+      if (!swappedOk && !(homeOk && awayOk)) pointsBlocked = true;
+    }
+
+    const points = pointsBlocked
+      ? 0
+      : calculateMatchPoints(
+          { homeScore: prediction.homeScore, awayScore: prediction.awayScore },
+          { homeScore, awayScore },
+          match.phase as MatchPhase,
+          prediction.isWildcard
+        );
 
     await prisma.prediction.update({
       where: { id: prediction.id },

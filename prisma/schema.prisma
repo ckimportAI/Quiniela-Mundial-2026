@@ -199,9 +199,11 @@ model Team {
 
   group Group? @relation(fields: [groupId], references: [id])
 
-  homeMatches           Match[]                @relation("HomeTeam")
-  awayMatches           Match[]                @relation("AwayTeam")
-  tournamentPredictions TournamentPrediction[]
+  homeMatches               Match[]                @relation("HomeTeam")
+  awayMatches               Match[]                @relation("AwayTeam")
+  tournamentPredictions     TournamentPrediction[]
+  predictedAsHomeByBracket  Prediction[]           @relation("PredictedHomeTeam")
+  predictedAsAwayByBracket  Prediction[]           @relation("PredictedAwayTeam")
 
   @@map("teams")
 }
@@ -276,12 +278,20 @@ model Prediction {
   isWildcard Boolean @default(false)
   points     Int?
 
+  // For liga-mode bracket predictions where teams of a KO match are TBD:
+  // user picks which teams they think will play this slot. NULL for group
+  // stage and for non-liga users (teams are already set on the Match).
+  predictedHomeTeamId String?
+  predictedAwayTeamId String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  quiniela Quiniela @relation(fields: [quinielaId], references: [id], onDelete: Cascade)
-  match    Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  quiniela         Quiniela @relation(fields: [quinielaId], references: [id], onDelete: Cascade)
+  match            Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  predictedHome    Team?    @relation("PredictedHomeTeam", fields: [predictedHomeTeamId], references: [id])
+  predictedAway    Team?    @relation("PredictedAwayTeam", fields: [predictedAwayTeamId], references: [id])
 
   @@unique([quinielaId, matchId])
   @@index([matchId])

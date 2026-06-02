@@ -29,12 +29,32 @@ export async function POST() {
     });
 
     for (const prediction of predictions) {
-      const points = calculateMatchPoints(
-        { homeScore: prediction.homeScore, awayScore: prediction.awayScore },
-        { homeScore: match.homeScore!, awayScore: match.awayScore! },
-        match.phase as MatchPhase,
-        prediction.isWildcard
-      );
+      // Bracket picks: if the user predicted specific teams for a KO slot
+      // (liga members), their score is only valid when the picked teams
+      // match the actual teams. Otherwise 0 points.
+      let pointsBlocked = false;
+      if (prediction.predictedHomeTeamId || prediction.predictedAwayTeamId) {
+        const homeOk = prediction.predictedHomeTeamId
+          ? prediction.predictedHomeTeamId === match.homeTeamId
+          : true;
+        const awayOk = prediction.predictedAwayTeamId
+          ? prediction.predictedAwayTeamId === match.awayTeamId
+          : true;
+        // Allow swapped picks (predicted A vs B, actual is B vs A)
+        const swappedOk =
+          prediction.predictedHomeTeamId === match.awayTeamId &&
+          prediction.predictedAwayTeamId === match.homeTeamId;
+        if (!swappedOk && !(homeOk && awayOk)) pointsBlocked = true;
+      }
+
+      const points = pointsBlocked
+        ? 0
+        : calculateMatchPoints(
+            { homeScore: prediction.homeScore, awayScore: prediction.awayScore },
+            { homeScore: match.homeScore!, awayScore: match.awayScore! },
+            match.phase as MatchPhase,
+            prediction.isWildcard
+          );
 
       await prisma.prediction.update({
         where: { id: prediction.id },

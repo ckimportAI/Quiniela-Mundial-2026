@@ -52,8 +52,9 @@ function LoginForm() {
 
       // Routing priority:
       // 1. Liga owner -> their admin panel (skip onboarding; they don't play)
-      // 2. No nickname -> onboarding
-      // 3. Otherwise -> predicciones
+      // 2. Liga member -> bracket page (full-quiniela single-page form)
+      // 3. No nickname -> onboarding
+      // 4. Otherwise -> predicciones
       const checkRes = await fetch(
         `/api/users/check-profile?email=${encodeURIComponent(email)}`
       );
@@ -61,6 +62,10 @@ function LoginForm() {
         const profile = await checkRes.json();
         if (profile.isLigaOwner) {
           window.location.href = "/liga-admin";
+          return;
+        }
+        if (profile.isLigaMember) {
+          window.location.href = "/predicciones-bracket";
           return;
         }
         if (!profile.hasNickname) {

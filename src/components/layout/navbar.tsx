@@ -23,9 +23,9 @@ const generalAuthLinks = [
   { href: "/regalar", label: "Regalar" },
 ];
 
-// Liga members: only need predicciones (their liga quiniela)
+// Liga members: only need bracket predicciones (single-page all phases)
 const ligaMemberLinks = [
-  { href: "/predicciones", label: "Predicciones" },
+  { href: "/predicciones-bracket", label: "Mi Bracket" },
 ];
 
 // Liga owners: only admin link (they do not play)
