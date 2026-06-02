@@ -161,34 +161,78 @@ export async function getFixturesByDate(
  * Normalize a team name for matching against DB.
  * Handles common variations (Korea Republic ↔ South Korea, USA ↔ United States).
  */
+// Bidirectional English <-> Spanish mapping for DB lookups.
+// API-Football returns English names; DB stores Spanish names.
+const ES_EN_PAIRS: Array<[string, string]> = [
+  ["czech republic", "república checa"],
+  ["korea republic", "corea del sur"],
+  ["south korea", "corea del sur"],
+  ["mexico", "méxico"],
+  ["south africa", "sudáfrica"],
+  ["bosnia and herzegovina", "bosnia y herzegovina"],
+  ["bosnia-herzegovina", "bosnia y herzegovina"],
+  ["canada", "canadá"],
+  ["qatar", "catar"],
+  ["switzerland", "suiza"],
+  ["brazil", "brasil"],
+  ["haiti", "haití"],
+  ["morocco", "marruecos"],
+  ["scotland", "escocia"],
+  ["turkey", "turquía"],
+  ["turkiye", "turquía"],
+  ["united states", "estados unidos"],
+  ["usa", "estados unidos"],
+  ["curacao", "curazao"],
+  ["cape verde", "cabo verde"],
+  ["germany", "alemania"],
+  ["ivory coast", "costa de marfil"],
+  ["cote d'ivoire", "costa de marfil"],
+  ["japan", "japón"],
+  ["netherlands", "países bajos"],
+  ["sweden", "suecia"],
+  ["tunisia", "túnez"],
+  ["belgium", "bélgica"],
+  ["egypt", "egipto"],
+  ["iran", "irán"],
+  ["new zealand", "nueva zelanda"],
+  ["saudi arabia", "arabia saudita"],
+  ["spain", "españa"],
+  ["france", "francia"],
+  ["iraq", "irak"],
+  ["norway", "noruega"],
+  ["algeria", "argelia"],
+  ["jordan", "jordania"],
+  ["dr congo", "rd congo"],
+  ["congo dr", "rd congo"],
+  ["uzbekistan", "uzbekistán"],
+  ["croatia", "croacia"],
+  ["england", "inglaterra"],
+  ["panama", "panamá"],
+];
+
+const NAME_ALIASES = new Map<string, string[]>();
+for (const [en, es] of ES_EN_PAIRS) {
+  if (!NAME_ALIASES.has(en)) NAME_ALIASES.set(en, []);
+  if (!NAME_ALIASES.has(es)) NAME_ALIASES.set(es, []);
+  NAME_ALIASES.get(en)!.push(es);
+  NAME_ALIASES.get(es)!.push(en);
+}
+
 export function normalizeTeamName(name: string): string {
+  // Kept for backward compatibility: returns the first alias if any, else self.
   const n = name.trim().toLowerCase();
-  const map: Record<string, string> = {
-    "south korea": "korea republic",
-    "united states": "usa",
-    "usa": "united states",
-    "korea republic": "south korea",
-    "cape verde": "cabo verde",
-    "cabo verde": "cape verde",
-    "cote d'ivoire": "ivory coast",
-    "ivory coast": "cote d'ivoire",
-    "bosnia-herzegovina": "bosnia and herzegovina",
-    "bosnia and herzegovina": "bosnia-herzegovina",
-    "turkiye": "turkey",
-    "turkey": "turkiye",
-    "dr congo": "congo dr",
-    "congo dr": "dr congo",
-  };
-  return map[n] ?? n;
+  const aliases = NAME_ALIASES.get(n);
+  return aliases?.[0] ?? n;
 }
 
 /**
- * Return both original and normalized variations to try matching a team.
+ * Return original + all known aliases (lowercased) to try matching a team
+ * against the DB. Handles English <-> Spanish and historical variants.
  */
 export function getTeamNameCandidates(name: string): string[] {
   const orig = name.trim().toLowerCase();
-  const normalized = normalizeTeamName(name);
-  return [...new Set([orig, normalized])];
+  const aliases = NAME_ALIASES.get(orig) ?? [];
+  return [...new Set([orig, ...aliases])];
 }
 
 /**
