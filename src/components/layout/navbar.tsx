@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { UserButton } from "@/components/auth/user-button";
 import { cn } from "@/lib/utils";
 import { Menu, X } from "lucide-react";
@@ -15,17 +15,49 @@ const publicLinks = [
   { href: "/tabla", label: "Leaderboard" },
 ];
 
-const authLinks = [
+// Links shown to regular (non-liga) authenticated users
+const generalAuthLinks = [
   { href: "/predicciones", label: "Predicciones" },
   { href: "/sub-quinielas", label: "Mis Grupos" },
   { href: "/paquetes", label: "Paquetes" },
   { href: "/regalar", label: "Regalar" },
 ];
 
+// Liga members: only need predicciones (their liga quiniela)
+const ligaMemberLinks = [
+  { href: "/predicciones", label: "Predicciones" },
+];
+
+// Liga owners: only admin link (they do not play)
+const ligaOwnerLinks = [
+  { href: "/liga-admin", label: "Panel de mi Liga" },
+];
+
 export function Navbar() {
   const pathname = usePathname();
   const { data: session } = useSession();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [isLigaOwner, setIsLigaOwner] = useState(false);
+  const [isLigaMember, setIsLigaMember] = useState(false);
+
+  useEffect(() => {
+    if (!session?.user?.email) {
+      setIsLigaOwner(false);
+      setIsLigaMember(false);
+      return;
+    }
+    fetch(`/api/users/check-profile?email=${encodeURIComponent(session.user.email)}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        setIsLigaOwner(!!d?.isLigaOwner);
+        setIsLigaMember(!!d?.isLigaMember);
+      })
+      .catch(() => {});
+  }, [session?.user?.email]);
+
+  let authLinks = generalAuthLinks;
+  if (isLigaOwner) authLinks = ligaOwnerLinks;
+  else if (isLigaMember) authLinks = ligaMemberLinks;
 
   const links = session ? [...publicLinks, ...authLinks] : publicLinks;
 
