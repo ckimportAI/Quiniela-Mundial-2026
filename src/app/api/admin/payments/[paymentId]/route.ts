@@ -37,7 +37,8 @@ export async function PATCH(
     return NextResponse.json({ error: "Pago no encontrado" }, { status: 404 });
   }
 
-  // Platform admin cannot touch liga payments
+  // Platform admin cannot touch liga payments (only their own).
+  // Linked general opt-ins ($10 add-on from liga members) ARE managed by platform.
   if (payment.ligaId) {
     return NextResponse.json(
       { error: "Este pago pertenece a una liga privada" },
@@ -145,7 +146,20 @@ export async function PATCH(
       );
     }
 
-    if (payment.isGift) {
+    if (payment.isGeneralOptIn && payment.linkedPaymentId) {
+      // Opt-in $10 add-on: flip alsoInGeneral on the linked liga payment's quinielas
+      ops.push(
+        prisma.quiniela.updateMany({
+          where: {
+            userId: payment.userId,
+            ligaId: { not: null },
+            // Match quinielas created from the linked liga payment.
+            // Conservative: update all liga quinielas owned by user (single liga per user).
+          },
+          data: { alsoInGeneral: true },
+        })
+      );
+    } else if (payment.isGift) {
       // Create N GiftCodes (no quinielas yet, recipients redeem)
       for (const code of giftCodes) {
         ops.push(

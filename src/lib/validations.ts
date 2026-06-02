@@ -32,7 +32,13 @@ export const paymentReportSchema = z.object({
   // Gift purchase: when true, generate GiftCodes instead of quinielas
   isGift: z.boolean().optional().default(false),
   giftQuantity: z.number().int().min(1).max(10).optional(),
-}).refine((data) => !!data.packageId || !!data.credits || (data.isGift && data.giftQuantity), {
+  // Liga member opt-in to general pool (+$10 add-on)
+  wantsGeneralOptIn: z.boolean().optional().default(false),
+  generalReference: z.string().max(100).optional(),
+  generalProofUrl: z.string().max(300).optional(),
+  generalMethod: z.string().max(50).optional(),
+  generalAmountBs: z.number().positive().optional(),
+}).refine((data) => !!data.packageId || !!data.credits || (data.isGift && data.giftQuantity) || data.wantsGeneralOptIn !== undefined, {
   message: "Debes indicar un paquete, creditos, o un regalo",
 });
 

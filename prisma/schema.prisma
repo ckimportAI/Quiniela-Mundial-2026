@@ -157,10 +157,13 @@ enum SubQuinielaMemberRole {
 // ==========================================
 
 model Quiniela {
-  id          String   @id @default(cuid())
-  name        String
-  userId      String
-  ligaId      String?
+  id              String   @id @default(cuid())
+  name            String
+  userId          String
+  ligaId          String?
+  // When true, this quiniela ALSO participates in the main QuinielaPanas pool
+  // (only valid when ligaId is set; liga member paid extra to opt-in)
+  alsoInGeneral   Boolean  @default(false)
   isTest      Boolean  @default(false)
   isAi        Boolean  @default(false)
   aiProvider  String?  @db.VarChar(30)
@@ -398,6 +401,11 @@ model PaymentReport {
   // Liga scoping (private group). Approval logic differs (no welcome bonus, custom price)
   ligaId        String?
 
+  // Linked payment: liga payment <-> general opt-in companion ($10 to general pool)
+  // When set, both payments are part of the same transaction (liga + general add-on)
+  linkedPaymentId String?
+  isGeneralOptIn  Boolean @default(false) // true if THIS payment is the $10 general add-on of a liga member
+
   // Bs payment tracking (captured from OCR when available)
   amountBs      Decimal?  @db.Decimal(14, 2)
   paymentDate   DateTime?
@@ -418,10 +426,13 @@ model PaymentReport {
   saldosConsumidos SaldoFavor[] @relation("UsoSaldo")
   giftCodes        GiftCode[]
   liga             Liga?        @relation(fields: [ligaId], references: [id], onDelete: SetNull)
+  linkedPayment    PaymentReport?  @relation("PaymentLink", fields: [linkedPaymentId], references: [id], onDelete: SetNull)
+  linkedByPayments PaymentReport[] @relation("PaymentLink")
 
   @@index([userId])
   @@index([status])
   @@index([ligaId])
+  @@index([linkedPaymentId])
   @@map("payment_reports")
 }
 

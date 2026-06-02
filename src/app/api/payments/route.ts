@@ -230,7 +230,27 @@ export async function POST(request: NextRequest) {
     saldoUsadoBs = parsed.data.useSaldoBs;
   }
 
-  const payment = await prisma.paymentReport.create({
+  // ----------------------------------------------------------
+  // Opt-in: liga member also wants to participate in general pool (+$10)
+  // ----------------------------------------------------------
+  const wantsGeneralOptIn =
+    !!memberLigaId && parsed.data.wantsGeneralOptIn === true;
+  const OPT_IN_USD = 10;
+
+  if (wantsGeneralOptIn) {
+    if (
+      !parsed.data.generalReference ||
+      parsed.data.generalReference.trim().length < 3
+    ) {
+      return NextResponse.json(
+        { error: "Falta la referencia del pago de $10 al pote general" },
+        { status: 400 }
+      );
+    }
+  }
+
+  // Create liga payment first
+  const ligaPayment = await prisma.paymentReport.create({
     data: {
       userId: session.user.id,
       packageId: memberLigaId ? null : parsed.data.packageId ?? null,
@@ -252,5 +272,34 @@ export async function POST(request: NextRequest) {
     },
   });
 
-  return NextResponse.json(payment, { status: 201 });
+  // If opt-in, create the linked general $10 PaymentReport
+  if (wantsGeneralOptIn) {
+    const optInPayment = await prisma.paymentReport.create({
+      data: {
+        userId: session.user.id,
+        ligaId: null, // goes to platform (you), not Leonard
+        packageId: null, // no package, it's just an opt-in fee
+        credits: 0, // does not grant any new quiniela
+        amount: OPT_IN_USD,
+        amountBs: parsed.data.generalAmountBs ?? null,
+        paymentDate: parsed.data.paymentDate ? new Date(parsed.data.paymentDate) : null,
+        bcvRateUsd: parsed.data.bcvRateUsd ?? null,
+        bcvRateEur: parsed.data.bcvRateEur ?? null,
+        method: parsed.data.generalMethod ?? parsed.data.method,
+        reference: parsed.data.generalReference!,
+        notes: "Opt-in al pote general (liga member)",
+        proofUrl: parsed.data.generalProofUrl ?? null,
+        isGeneralOptIn: true,
+        linkedPaymentId: ligaPayment.id,
+      },
+    });
+
+    // Back-link
+    await prisma.paymentReport.update({
+      where: { id: ligaPayment.id },
+      data: { linkedPaymentId: optInPayment.id },
+    });
+  }
+
+  return NextResponse.json(ligaPayment, { status: 201 });
 }

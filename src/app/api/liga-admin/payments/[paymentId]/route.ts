@@ -65,6 +65,16 @@ export async function PATCH(
   const existingCount = user._count.quinielas;
   const toCreate = payment.credits;
 
+  // If linked general opt-in payment is already APPROVED -> mark quinielas as alsoInGeneral
+  let alsoInGeneral = false;
+  if (payment.linkedPaymentId) {
+    const linked = await prisma.paymentReport.findUnique({
+      where: { id: payment.linkedPaymentId },
+      select: { status: true },
+    });
+    if (linked?.status === "APPROVED") alsoInGeneral = true;
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const ops: any[] = [
     prisma.paymentReport.update({
@@ -85,6 +95,7 @@ export async function PATCH(
           name: `${nickname}-${existingCount + i + 1}`,
           userId: payment.userId,
           ligaId: liga.id,
+          alsoInGeneral,
           score: { create: {} },
         },
       })

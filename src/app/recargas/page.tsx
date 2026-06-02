@@ -105,6 +105,29 @@ function RecargasContent() {
   const [payments, setPayments] = useState<PaymentData[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Liga context (when user belongs to a private liga)
+  const [packagesLoaded, setPackagesLoaded] = useState(false);
+  const [isLigaMember, setIsLigaMember] = useState(false);
+  const [ligaInfo, setLigaInfo] = useState<{
+    name: string;
+    slug: string;
+    pagoMovilPhone: string | null;
+    pagoMovilCedula: string | null;
+    pagoMovilBank: string | null;
+    zelleEmail: string | null;
+    zelleName: string | null;
+    paymentNotes: string | null;
+  } | null>(null);
+
+  // Liga member opt-in to general pool (+$10)
+  const OPT_IN_USD = 10;
+  const [optInGeneral, setOptInGeneral] = useState(false);
+  const [genReference, setGenReference] = useState("");
+  const [genMethod, setGenMethod] = useState("Pago Movil");
+  const [genProofUrl, setGenProofUrl] = useState<string | null>(null);
+  const [genProofFilename, setGenProofFilename] = useState<string | null>(null);
+  const [genUploading, setGenUploading] = useState(false);
+
   const [method, setMethod] = useState("Pago Movil");
   const [reference, setReference] = useState("");
   const [notes, setNotes] = useState("");
@@ -154,13 +177,26 @@ function RecargasContent() {
       .then((r) => r.json())
       .then((data) => {
         setOffer(data.offer);
-        if (packageId) {
+        if (data.isLiga) {
+          setIsLigaMember(true);
+          setLigaInfo({
+            name: data.ligaName,
+            slug: data.ligaSlug,
+            ...data.ligaPaymentInfo,
+          });
+          // Auto-select the single liga package
+          if (data.packages?.[0]) {
+            setPkg(data.packages[0]);
+          }
+        } else if (packageId) {
           const found = data.packages.find(
             (p: PackageDataExtended) => p.id === packageId
           );
           setPkg(found ?? null);
         }
-      });
+        setPackagesLoaded(true);
+      })
+      .catch(() => setPackagesLoaded(true));
   }, [packageId]);
 
   // For gift mode, build a synthetic "package" so the rest of the UI works
@@ -196,12 +232,12 @@ function RecargasContent() {
     fetchPayments();
   }, [fetchPayments]);
 
-  // If no package selected and not a gift purchase, redirect to packages page
+  // If no package selected and not a gift purchase and not a liga member, redirect
   useEffect(() => {
-    if (!packageId && !isGift) {
+    if (!packageId && !isGift && !isLigaMember && packagesLoaded) {
       router.replace("/paquetes");
     }
-  }, [packageId, isGift, router]);
+  }, [packageId, isGift, isLigaMember, packagesLoaded, router]);
 
   const handleFileUpload = async (file: File) => {
     setOcrError(null);
@@ -280,7 +316,7 @@ function RecargasContent() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          packageId: isGift ? undefined : pkg.id,
+          packageId: isGift || isLigaMember ? undefined : pkg.id,
           isGift: isGift || undefined,
           giftQuantity: isGift ? giftQty : undefined,
           amount: pkg.priceUsd,
@@ -295,6 +331,15 @@ function RecargasContent() {
           reference,
           notes: notes || undefined,
           proofUrl: proofUrl || undefined,
+          // Liga opt-in fields
+          wantsGeneralOptIn: isLigaMember && optInGeneral ? true : undefined,
+          generalReference: isLigaMember && optInGeneral ? genReference : undefined,
+          generalMethod: isLigaMember && optInGeneral ? genMethod : undefined,
+          generalProofUrl: isLigaMember && optInGeneral && genProofUrl ? genProofUrl : undefined,
+          generalAmountBs:
+            isLigaMember && optInGeneral && rate
+              ? +(OPT_IN_USD * rate.eur).toFixed(2)
+              : undefined,
         }),
       });
 
@@ -532,28 +577,204 @@ function RecargasContent() {
           )}
 
           <div className="rounded-lg border bg-muted/40 p-4">
-            <p className="text-sm font-semibold mb-2">Pago Movil (Bs)</p>
+            <p className="text-sm font-semibold mb-2">
+              {isLigaMember
+                ? `Pago Movil a ${ligaInfo?.name ?? "la liga"}`
+                : "Pago Movil (Bs)"}
+            </p>
             <div className="space-y-1 text-sm">
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-muted-foreground">Telefono:</span>
-                <div className="flex items-center gap-2">
-                  <span className="font-mono">{PAGO_MOVIL.phone}</span>
-                  <CopyBtn text={PAGO_MOVIL.phone.replace(/-/g, "")} />
-                </div>
-              </div>
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-muted-foreground">Cedula:</span>
-                <div className="flex items-center gap-2">
-                  <span className="font-mono">{PAGO_MOVIL.cedula}</span>
-                  <CopyBtn text={PAGO_MOVIL.cedula} />
-                </div>
-              </div>
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-muted-foreground">Banco:</span>
-                <span className="font-mono">{PAGO_MOVIL.bank}</span>
-              </div>
+              {(() => {
+                const phone =
+                  isLigaMember && ligaInfo?.pagoMovilPhone
+                    ? ligaInfo.pagoMovilPhone
+                    : PAGO_MOVIL.phone;
+                const cedula =
+                  isLigaMember && ligaInfo?.pagoMovilCedula
+                    ? ligaInfo.pagoMovilCedula
+                    : PAGO_MOVIL.cedula;
+                const bank =
+                  isLigaMember && ligaInfo?.pagoMovilBank
+                    ? ligaInfo.pagoMovilBank
+                    : PAGO_MOVIL.bank;
+                return (
+                  <>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-muted-foreground">Telefono:</span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono">{phone}</span>
+                        <CopyBtn text={phone.replace(/-/g, "")} />
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-muted-foreground">Cedula:</span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono">{cedula}</span>
+                        <CopyBtn text={cedula} />
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-muted-foreground">Banco:</span>
+                      <span className="font-mono">{bank}</span>
+                    </div>
+                  </>
+                );
+              })()}
             </div>
+            {isLigaMember && ligaInfo?.zelleEmail && (
+              <div className="mt-3 pt-3 border-t space-y-1 text-sm">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                  Tambien Zelle
+                </p>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-muted-foreground">Email:</span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-xs">{ligaInfo.zelleEmail}</span>
+                    <CopyBtn text={ligaInfo.zelleEmail} />
+                  </div>
+                </div>
+                {ligaInfo.zelleName && (
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-muted-foreground">Nombre:</span>
+                    <span className="font-mono text-xs">{ligaInfo.zelleName}</span>
+                  </div>
+                )}
+              </div>
+            )}
+            {isLigaMember && ligaInfo?.paymentNotes && (
+              <p className="text-xs text-muted-foreground mt-3 pt-2 border-t italic">
+                {ligaInfo.paymentNotes}
+              </p>
+            )}
           </div>
+
+          {/* Liga -> general opt-in checkbox + second payment section */}
+          {isLigaMember && (
+            <div className="rounded-lg border-2 border-dashed border-amber-300 bg-amber-50 p-4 space-y-3">
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="mt-1"
+                  checked={optInGeneral}
+                  onChange={(e) => setOptInGeneral(e.target.checked)}
+                />
+                <div>
+                  <p className="font-semibold text-sm text-amber-900">
+                    Tambien jugar el pote general de QuinielaPanas (+${OPT_IN_USD})
+                  </p>
+                  <p className="text-xs text-amber-800 mt-1">
+                    Con la misma quiniela competiras en{" "}
+                    <strong>ambos</strong>: tu liga y el leaderboard general
+                    (premios $500 / $250 / $150 USD).
+                  </p>
+                </div>
+              </label>
+
+              {optInGeneral && (
+                <div className="space-y-3 pt-2 border-t border-amber-300">
+                  <p className="text-xs text-amber-900 font-semibold">
+                    Paga {OPT_IN_USD} USD adicionales a los datos de QuinielaPanas:
+                  </p>
+                  <div className="rounded-lg bg-white border border-amber-200 p-3 text-xs space-y-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-muted-foreground">Telefono:</span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono">{PAGO_MOVIL.phone}</span>
+                        <CopyBtn text={PAGO_MOVIL.phone.replace(/-/g, "")} />
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-muted-foreground">Cedula:</span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono">{PAGO_MOVIL.cedula}</span>
+                        <CopyBtn text={PAGO_MOVIL.cedula} />
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-muted-foreground">Banco:</span>
+                      <span className="font-mono">{PAGO_MOVIL.bank}</span>
+                    </div>
+                    {rate && (
+                      <p className="text-[10px] text-muted-foreground pt-1">
+                        ~ Bs.{" "}
+                        {(OPT_IN_USD * rate.eur).toLocaleString("es-VE", {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}{" "}
+                        a depositar
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-xs font-medium block">
+                      Metodo de pago (opt-in)
+                    </label>
+                    <select
+                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                      value={genMethod}
+                      onChange={(e) => setGenMethod(e.target.value)}
+                    >
+                      {PAYMENT_METHODS.map((m) => (
+                        <option key={m} value={m}>
+                          {m}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium block">
+                      Referencia del pago de ${OPT_IN_USD} *
+                    </label>
+                    <Input
+                      placeholder="N. de referencia / hash"
+                      value={genReference}
+                      onChange={(e) => setGenReference(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium block">
+                      Comprobante del opt-in (opcional)
+                    </label>
+                    <input
+                      type="file"
+                      accept="image/*,.pdf"
+                      className="block w-full text-xs"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        setGenUploading(true);
+                        try {
+                          const fd = new FormData();
+                          fd.append("file", file);
+                          const r = await fetch("/api/upload/payment-proof", {
+                            method: "POST",
+                            body: fd,
+                          });
+                          if (r.ok) {
+                            const d = await r.json();
+                            setGenProofUrl(d.url);
+                            setGenProofFilename(file.name);
+                          }
+                        } finally {
+                          setGenUploading(false);
+                        }
+                      }}
+                    />
+                    {genUploading && (
+                      <p className="text-xs text-muted-foreground">Subiendo...</p>
+                    )}
+                    {genProofFilename && !genUploading && (
+                      <p className="text-xs text-green-700">
+                        ✓ {genProofFilename}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
           <p className="text-xs text-muted-foreground">
             Tambien aceptamos Zelle y Binance Pay (consulta por WhatsApp).
           </p>

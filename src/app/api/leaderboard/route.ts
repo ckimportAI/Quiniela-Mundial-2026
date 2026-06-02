@@ -9,23 +9,42 @@ export async function GET(request: NextRequest) {
   const limit = parseInt(searchParams.get("limit") ?? "50");
   const skip = (page - 1) * limit;
 
-  // If the user belongs to a liga, scope leaderboard to that liga
-  // Otherwise show only the main (non-liga) leaderboard
+  // Scoping rules:
+  // - Liga members see ONLY their liga leaderboard (their liga quinielas)
+  // - Non-liga (or anonymous) viewers see the GENERAL leaderboard:
+  //   quinielas with ligaId IS NULL, plus liga quinielas that opted-in
+  //   (alsoInGeneral = true)
   const session = await getServerSession(authOptions);
-  let ligaFilter: { is: { ligaId: string | null } } | undefined;
+  let scopedWhere: Record<string, unknown> = {};
   if (session?.user?.id) {
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
       select: { ligaId: true },
     });
-    ligaFilter = { is: { ligaId: user?.ligaId ?? null } };
+    if (user?.ligaId) {
+      scopedWhere = { quiniela: { is: { ligaId: user.ligaId } } };
+    } else {
+      scopedWhere = {
+        quiniela: {
+          is: {
+            OR: [{ ligaId: null }, { alsoInGeneral: true }],
+          },
+        },
+      };
+    }
   } else {
-    ligaFilter = { is: { ligaId: null } };
+    scopedWhere = {
+      quiniela: {
+        is: {
+          OR: [{ ligaId: null }, { alsoInGeneral: true }],
+        },
+      },
+    };
   }
 
   const [entries, total] = await Promise.all([
     prisma.quinielaScore.findMany({
-      where: { quiniela: ligaFilter },
+      where: scopedWhere,
       include: {
         quiniela: {
           include: {
@@ -39,7 +58,7 @@ export async function GET(request: NextRequest) {
       skip,
       take: limit,
     }),
-    prisma.quinielaScore.count({ where: { quiniela: ligaFilter } }),
+    prisma.quinielaScore.count({ where: scopedWhere }),
   ]);
 
   return NextResponse.json({
