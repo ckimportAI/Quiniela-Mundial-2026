@@ -63,12 +63,20 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Duplicate detection: reference + method (+ amountBs + paymentDate if provided)
-  // already reported (and not rejected)
+  // ----------------------------------------------------------
+  // Duplicate detection (scoped by tenant context to avoid cross-talk
+  // between Liga payments and the main QuinielaPanas pool)
+  // ----------------------------------------------------------
+  // Resolve the user's liga membership first so we can scope the lookup.
+  const userForScope = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { ligaId: true },
+  });
+  const scopeLigaId = userForScope?.ligaId ?? null;
+
   const dupFilters: Array<Record<string, unknown>> = [
     { reference: parsed.data.reference, method: parsed.data.method },
   ];
-  // If OCR captured amountBs + date, also check that combination globally
   if (parsed.data.amountBs && parsed.data.paymentDate) {
     const day = new Date(parsed.data.paymentDate);
     const dayStart = new Date(day.getFullYear(), day.getMonth(), day.getDate());
@@ -80,8 +88,11 @@ export async function POST(request: NextRequest) {
     });
   }
 
+  // Liga members compare against their own liga's payments only.
+  // Non-liga users compare against general (ligaId IS NULL) payments only.
   const existingDuplicate = await prisma.paymentReport.findFirst({
     where: {
+      ligaId: scopeLigaId,
       OR: dupFilters,
       status: { in: ["PENDING", "APPROVED"] },
     },
@@ -94,7 +105,7 @@ export async function POST(request: NextRequest) {
       {
         error: sameUser
           ? "Ya reportaste este comprobante anteriormente."
-          : "Este comprobante ya fue reportado en el sistema. Si crees que es un error, contacta a soporte.",
+          : "Este comprobante ya fue reportado. Si crees que es un error, contacta al administrador.",
       },
       { status: 409 }
     );
@@ -108,11 +119,7 @@ export async function POST(request: NextRequest) {
   // ----------------------------------------------------------
   // LIGA path: user belongs to a private liga -> custom price + scoping
   // ----------------------------------------------------------
-  const memberInfo = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { ligaId: true },
-  });
-  const memberLigaId = memberInfo?.ligaId ?? null;
+  const memberLigaId = scopeLigaId;
 
   let ligaPriceUsd = 0;
   let ligaQuinielasPerPurchase = 0;
