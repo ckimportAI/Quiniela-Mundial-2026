@@ -3,7 +3,14 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { puedeCrearQuiniela } from "@/lib/constants";
-import { resolveBracket, slotLabelFor, type MatchInfo, type PredictionInfo } from "@/lib/bracket";
+import {
+  resolveBracket,
+  slotLabelFor,
+  computeAllGroupStandings,
+  pickBestThirds,
+  type MatchInfo,
+  type PredictionInfo,
+} from "@/lib/bracket";
 
 export const dynamic = "force-dynamic";
 
@@ -81,6 +88,29 @@ export async function GET(request: NextRequest) {
     }));
   const resolved = resolveBracket(matchInfos, predictionInfos);
 
+  // Compute standings + best 3rds for the standings tab
+  const standings = computeAllGroupStandings(matchInfos, predictionInfos);
+  const bestThirds = pickBestThirds(standings);
+  const standingsArray = Array.from(standings.entries()).map(([groupName, list]) => ({
+    groupName,
+    teams: list.map((s, idx) => {
+      const team = teams.find((t) => t.id === s.teamId);
+      return {
+        rank: idx + 1,
+        teamId: s.teamId,
+        teamName: team?.name ?? s.teamId,
+        teamFlag: team?.flag ?? null,
+        played: s.played,
+        points: s.points,
+        goalsFor: s.goalsFor,
+        goalsAgainst: s.goalsAgainst,
+        goalDiff: s.goalDiff,
+        isBestThird: idx === 2 && bestThirds.has(groupName),
+      };
+    }),
+  }));
+  standingsArray.sort((a, b) => a.groupName.localeCompare(b.groupName));
+
   // Enrich each match with resolvedHomeTeamId/awayTeamId + human slot label
   const teamById = new Map(teams.map((t) => [t.id, t]));
   const enrichedMatches = matches.map((m) => {
@@ -100,6 +130,7 @@ export async function GET(request: NextRequest) {
     teams,
     predictions,
     tournamentPicks,
+    standings: standingsArray,
     canEdit: puedeCrearQuiniela(),
   });
 }

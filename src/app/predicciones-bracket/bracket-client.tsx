@@ -64,6 +64,24 @@ const PHASE_ORDER: Phase[] = [
   "FINAL",
 ];
 
+interface StandingRow {
+  rank: number;
+  teamId: string;
+  teamName: string;
+  teamFlag: string | null;
+  played: number;
+  points: number;
+  goalsFor: number;
+  goalsAgainst: number;
+  goalDiff: number;
+  isBestThird: boolean;
+}
+
+interface GroupStandings {
+  groupName: string;
+  teams: StandingRow[];
+}
+
 interface Quiniela {
   id: string;
   name: string;
@@ -85,6 +103,7 @@ export default function BracketClient({
     THIRD_PLACE: "",
     TOP_SCORER: "",
   });
+  const [standings, setStandings] = useState<GroupStandings[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savedAt, setSavedAt] = useState<number | null>(null);
@@ -132,6 +151,7 @@ export default function BracketClient({
         }
       }
       setTournament(tp);
+      setStandings(d.standings ?? []);
     }
     setLoading(false);
   }, [activeQuinielaId]);
@@ -281,6 +301,17 @@ export default function BracketClient({
           })}
           <button
             type="button"
+            onClick={() => setActivePhase("STANDINGS" as Phase)}
+            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+              (activePhase as string) === "STANDINGS"
+                ? "border-primary text-primary"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Tabla
+          </button>
+          <button
+            type="button"
             onClick={() => setActivePhase("TORNEO" as Phase)}
             className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
               (activePhase as string) === "TORNEO"
@@ -304,6 +335,8 @@ export default function BracketClient({
           setTournament={setTournament}
           disabled={!canEdit}
         />
+      ) : (activePhase as string) === "STANDINGS" ? (
+        <StandingsSection standings={standings} />
       ) : (
         <PhaseSection
           phase={activePhase}
@@ -453,6 +486,80 @@ function PhaseSection({
           </Card>
         );
       })}
+    </div>
+  );
+}
+
+function StandingsSection({ standings }: { standings: GroupStandings[] }) {
+  if (standings.length === 0) {
+    return (
+      <div className="text-center py-12 text-muted-foreground">
+        <p>Llena los partidos de la fase de grupos y guarda</p>
+        <p className="text-xs mt-2">
+          Aqui veras las tablas calculadas automaticamente segun tus predicciones.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      <p className="text-xs text-muted-foreground">
+        Ranking calculado segun tus predicciones (puntos → diferencia de gol → goles a favor).
+        Los <strong className="text-yellow-600">3ros marcados</strong> son los 8 mejores
+        terceros que avanzan a Octavos.
+      </p>
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        {standings.map((g) => (
+          <Card key={g.groupName}>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">Grupo {g.groupName}</CardTitle>
+            </CardHeader>
+            <CardContent className="p-3 pt-0">
+              <table className="w-full text-xs">
+                <thead className="text-muted-foreground">
+                  <tr>
+                    <th className="text-left font-normal w-4">#</th>
+                    <th className="text-left font-normal">Equipo</th>
+                    <th className="text-center font-normal w-7">PJ</th>
+                    <th className="text-center font-normal w-7">DG</th>
+                    <th className="text-center font-normal w-7">Pts</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {g.teams.map((t) => {
+                    const isTop2 = t.rank <= 2;
+                    const isThird = t.rank === 3;
+                    const rowClass = isTop2
+                      ? "bg-green-50 border-l-2 border-green-500"
+                      : isThird && t.isBestThird
+                        ? "bg-yellow-50 border-l-2 border-yellow-500"
+                        : "";
+                    return (
+                      <tr key={t.teamId} className={rowClass}>
+                        <td className="font-bold py-1 pl-1">{t.rank}</td>
+                        <td className="py-1">
+                          {t.teamFlag ?? ""} {t.teamName}
+                          {isThird && t.isBestThird && (
+                            <span className="ml-1 text-[9px] text-yellow-700 font-semibold">
+                              ★
+                            </span>
+                          )}
+                        </td>
+                        <td className="text-center text-muted-foreground">{t.played}</td>
+                        <td className="text-center tabular-nums">
+                          {t.goalDiff > 0 ? `+${t.goalDiff}` : t.goalDiff}
+                        </td>
+                        <td className="text-center font-bold">{t.points}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
     </div>
   );
 }
