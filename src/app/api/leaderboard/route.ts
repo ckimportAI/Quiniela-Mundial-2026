@@ -10,28 +10,28 @@ export async function GET(request: NextRequest) {
   const skip = (page - 1) * limit;
 
   // Scoping rules:
-  // - Liga members see ONLY their liga leaderboard (their liga quinielas)
+  // - Liga members see ONLY their liga leaderboard
+  // - Liga owners (admins) see THEIR liga's leaderboard
   // - Non-liga (or anonymous) viewers see the GENERAL leaderboard:
   //   quinielas with ligaId IS NULL, plus liga quinielas that opted-in
   //   (alsoInGeneral = true)
   const session = await getServerSession(authOptions);
   let scopedWhere: Record<string, unknown> = {};
+  let viewingLigaId: string | null = null;
+
   if (session?.user?.id) {
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
-      select: { ligaId: true },
+      select: {
+        ligaId: true,
+        ownedLigas: { where: { active: true }, select: { id: true }, take: 1 },
+      },
     });
-    if (user?.ligaId) {
-      scopedWhere = { quiniela: { is: { ligaId: user.ligaId } } };
-    } else {
-      scopedWhere = {
-        quiniela: {
-          is: {
-            OR: [{ ligaId: null }, { alsoInGeneral: true }],
-          },
-        },
-      };
-    }
+    viewingLigaId = user?.ligaId ?? user?.ownedLigas?.[0]?.id ?? null;
+  }
+
+  if (viewingLigaId) {
+    scopedWhere = { quiniela: { is: { ligaId: viewingLigaId } } };
   } else {
     scopedWhere = {
       quiniela: {
