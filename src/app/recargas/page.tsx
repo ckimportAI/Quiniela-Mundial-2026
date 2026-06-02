@@ -922,10 +922,17 @@ function RecargasContent() {
                 )}
 
                 {ocrData && !ocrLoading && (() => {
-                  const fullBs = rate && pkg ? pkg.priceUsd * rate.eur : 0;
-                  const saldoApplied = useSaldo ? Math.min(saldoBs, fullBs) : 0;
+                  // Liga payments use the owner's custom rate; others use BCV Euro.
+                  const effectiveRate =
+                    isLigaMember && ligaBsRate
+                      ? ligaBsRate
+                      : rate?.eur ?? null;
+                  const fullBs =
+                    effectiveRate && pkg ? pkg.priceUsd * effectiveRate : 0;
+                  const saldoApplied =
+                    isLigaMember || !useSaldo ? 0 : Math.min(saldoBs, fullBs);
                   const expectedBs =
-                    rate && pkg ? Math.max(0, fullBs - saldoApplied) : null;
+                    effectiveRate && pkg ? Math.max(0, fullBs - saldoApplied) : null;
                   let amountCheck: "ok" | "low" | "high" | "unknown" = "unknown";
                   let diffPct = 0;
                   if (expectedBs && ocrData.amountBs != null) {
