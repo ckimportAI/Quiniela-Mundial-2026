@@ -23,6 +23,7 @@ interface LigaData {
   description: string | null;
   priceUsd: string;
   quinielasPerPurchase: number;
+  bsRate: string | null;
   pagoMovilPhone: string | null;
   pagoMovilCedula: string | null;
   pagoMovilBank: string | null;
@@ -383,6 +384,7 @@ function ConfigTab({
         description: form.description ?? "",
         priceUsd: Number(form.priceUsd),
         quinielasPerPurchase: form.quinielasPerPurchase,
+        bsRate: form.bsRate === null || form.bsRate === "" ? null : Number(form.bsRate),
         pagoMovilPhone: form.pagoMovilPhone ?? "",
         pagoMovilCedula: form.pagoMovilCedula ?? "",
         pagoMovilBank: form.pagoMovilBank ?? "",
@@ -443,6 +445,44 @@ function ConfigTab({
               }
             />
           </Field>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Tasa Bs/USD</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <Field label="Bs por cada USD (la que tu defines)">
+            <Input
+              type="number"
+              step="0.01"
+              min="0"
+              placeholder="Ej: 720"
+              value={form.bsRate ?? ""}
+              onChange={(e) =>
+                set("bsRate", (e.target.value === "" ? null : e.target.value) as unknown as string)
+              }
+            />
+          </Field>
+          <p className="text-xs text-muted-foreground">
+            Esta es la tasa que veran tus miembros al pagar. Si la dejas vacia,
+            se usa la tasa BCV Euro automatica. Actualizala cuando cambien las
+            condiciones del mercado.
+          </p>
+          {form.bsRate && Number(form.priceUsd) > 0 && (
+            <p className="text-xs text-green-700">
+              Tus miembros veran:{" "}
+              <strong>
+                Bs.{" "}
+                {(Number(form.priceUsd) * Number(form.bsRate)).toLocaleString(
+                  "es-VE",
+                  { minimumFractionDigits: 2, maximumFractionDigits: 2 }
+                )}
+              </strong>{" "}
+              por quiniela.
+            </p>
+          )}
         </CardContent>
       </Card>
 

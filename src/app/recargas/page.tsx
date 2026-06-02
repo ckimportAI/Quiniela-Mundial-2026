@@ -108,6 +108,7 @@ function RecargasContent() {
   // Liga context (when user belongs to a private liga)
   const [packagesLoaded, setPackagesLoaded] = useState(false);
   const [isLigaMember, setIsLigaMember] = useState(false);
+  const [ligaBsRate, setLigaBsRate] = useState<number | null>(null);
   const [ligaInfo, setLigaInfo] = useState<{
     name: string;
     slug: string;
@@ -179,6 +180,7 @@ function RecargasContent() {
         setOffer(data.offer);
         if (data.isLiga) {
           setIsLigaMember(true);
+          setLigaBsRate(data.ligaBsRate ?? null);
           setLigaInfo({
             name: data.ligaName,
             slug: data.ligaSlug,
@@ -320,13 +322,20 @@ function RecargasContent() {
           isGift: isGift || undefined,
           giftQuantity: isGift ? giftQty : undefined,
           amount: pkg.priceUsd,
-          amountBs: ocrData?.amountBs ?? undefined,
+          amountBs:
+            ocrData?.amountBs ??
+            (isLigaMember && ligaBsRate
+              ? +(pkg.priceUsd * ligaBsRate).toFixed(2)
+              : undefined),
           paymentDate: paymentDateIso,
-          bcvRateUsd: rate?.usd,
-          bcvRateEur: rate?.eur,
-          useSaldoBs: useSaldo && rate
-            ? Math.min(saldoBs, pkg.priceUsd * rate.eur)
-            : undefined,
+          bcvRateUsd: isLigaMember ? undefined : rate?.usd,
+          bcvRateEur: isLigaMember ? ligaBsRate ?? undefined : rate?.eur,
+          useSaldoBs:
+            isLigaMember
+              ? undefined
+              : useSaldo && rate
+                ? Math.min(saldoBs, pkg.priceUsd * rate.eur)
+                : undefined,
           method,
           reference,
           notes: notes || undefined,
@@ -506,8 +515,49 @@ function RecargasContent() {
           </p>
         </CardHeader>
         <CardContent className="space-y-3">
-          {/* Bs amount highlight (calculated with Euro BCV rate, minus saldo if used) */}
-          {rate && (() => {
+          {/* Bs amount highlight (liga uses owner's rate; general uses Euro BCV) */}
+          {(() => {
+            // Liga member with custom rate set by owner
+            if (isLigaMember && ligaBsRate) {
+              const fullBs = pkg.priceUsd * ligaBsRate;
+              return (
+                <div className="rounded-lg border-2 border-primary bg-primary/5 p-4 text-center">
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                    Monto a depositar
+                  </p>
+                  <p className="text-3xl font-extrabold text-primary tabular-nums mt-1">
+                    Bs. {fullBs.toLocaleString("es-VE", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    ${pkg.priceUsd} &times;{" "}
+                    {ligaBsRate.toLocaleString("es-VE", { maximumFractionDigits: 2 })}{" "}
+                    Bs/USD (tasa de {ligaInfo?.name ?? "tu liga"})
+                  </p>
+                  <div className="mt-3 flex items-center justify-center gap-1">
+                    <CopyBtn text={fullBs.toFixed(2)} />
+                  </div>
+                </div>
+              );
+            }
+            // Liga member but owner didn't set a rate yet
+            if (isLigaMember && !ligaBsRate) {
+              return (
+                <div className="rounded-lg bg-yellow-50 border border-yellow-300 p-4 text-center">
+                  <p className="text-sm font-semibold text-yellow-900">
+                    El administrador no ha configurado la tasa Bs/USD
+                  </p>
+                  <p className="text-xs text-yellow-800 mt-1">
+                    Pregunta al admin de {ligaInfo?.name ?? "tu liga"} el monto exacto
+                    en Bs antes de pagar.
+                  </p>
+                </div>
+              );
+            }
+            // Default (non-liga): Euro BCV rate
+            if (!rate) return null;
             const fullBs = pkg.priceUsd * rate.eur;
             const saldoApplied = useSaldo ? Math.min(saldoBs, fullBs) : 0;
             const toDepositBs = Math.max(0, fullBs - saldoApplied);
@@ -549,14 +599,14 @@ function RecargasContent() {
               </div>
             );
           })()}
-          {rateError && (
+          {rateError && !isLigaMember && (
             <div className="rounded-lg bg-yellow-50 border border-yellow-200 p-3 text-xs text-yellow-800">
               {rateError}. Consulta el monto por WhatsApp antes de pagar.
             </div>
           )}
 
-          {/* Rate info */}
-          {rate && (
+          {/* Rate info (only for non-liga; liga rate is shown in the amount box above) */}
+          {rate && !isLigaMember && (
             <div className="rounded-lg border bg-muted/40 p-3 text-xs space-y-1">
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Tasa Euro BCV (referencia):</span>

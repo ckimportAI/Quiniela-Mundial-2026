@@ -64,6 +64,11 @@ export async function PATCH(request: Request) {
   if (typeof body.quinielasPerPurchase === "number" && body.quinielasPerPurchase >= 1) {
     updates.quinielasPerPurchase = Math.min(10, body.quinielasPerPurchase);
   }
+  if (typeof body.bsRate === "number" && body.bsRate > 0) {
+    updates.bsRate = body.bsRate;
+  } else if (body.bsRate === null || body.bsRate === "") {
+    updates.bsRate = null;
+  }
   if (typeof body.pagoMovilPhone === "string") updates.pagoMovilPhone = body.pagoMovilPhone.slice(0, 20);
   if (typeof body.pagoMovilCedula === "string") updates.pagoMovilCedula = body.pagoMovilCedula.slice(0, 20);
   if (typeof body.pagoMovilBank === "string") updates.pagoMovilBank = body.pagoMovilBank.slice(0, 50);

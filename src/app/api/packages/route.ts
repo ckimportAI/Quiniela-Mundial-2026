@@ -35,6 +35,7 @@ export async function GET() {
         isLiga: true,
         ligaName: liga.name,
         ligaSlug: liga.slug,
+        ligaBsRate: liga.bsRate ? Number(liga.bsRate) : null,
         ligaPaymentInfo: {
           pagoMovilPhone: liga.pagoMovilPhone,
           pagoMovilCedula: liga.pagoMovilCedula,

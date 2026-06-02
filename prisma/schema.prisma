@@ -634,6 +634,10 @@ model Liga {
   priceUsd              Decimal @db.Decimal(10, 2) @default(10)
   quinielasPerPurchase  Int     @default(1)
 
+  // Custom Bs/USD rate set by the owner (e.g., parallel/Binance rate).
+  // When null, the platform falls back to BCV. Only applies to liga payments.
+  bsRate                Decimal? @db.Decimal(14, 4)
+
   // Owner's payment methods (members pay him directly)
   pagoMovilPhone  String? @db.VarChar(20)
   pagoMovilCedula String? @db.VarChar(20)
