@@ -76,7 +76,7 @@ export default function BracketClient({
   const [matches, setMatches] = useState<MatchLite[]>([]);
   const [teams, setTeams] = useState<TeamLite[]>([]);
   const [picks, setPicks] = useState<Record<string, MatchPick>>({});
-  const [tournament, setTournament] = useState({
+  const [tournament, setTournament] = useState<Record<string, string>>({
     CHAMPION: "",
     RUNNER_UP: "",
     THIRD_PLACE: "",
@@ -117,7 +117,7 @@ export default function BracketClient({
       }
       setPicks(initial);
 
-      const tp = {
+      const tp: Record<string, string> = {
         CHAMPION: "",
         RUNNER_UP: "",
         THIRD_PLACE: "",
@@ -125,8 +125,7 @@ export default function BracketClient({
       };
       for (const t of d.tournamentPicks ?? []) {
         if (t.type in tp) {
-          // For TOP_SCORER playerName, otherwise teamId
-          (tp as Record<string, string>)[t.type] = t.teamId ?? t.playerName ?? "";
+          tp[t.type] = t.teamId ?? t.playerName ?? "";
         }
       }
       setTournament(tp);
