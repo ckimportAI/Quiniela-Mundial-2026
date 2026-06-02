@@ -126,6 +126,36 @@ export async function GET(request: NextRequest) {
     };
   });
 
+  // Auto-derive championship picks from the bracket (read-only in UI)
+  const predByMatchNumberGet = new Map<number, { homeScore: number; awayScore: number; winnerOnPenaltiesTeamId: string | null }>();
+  for (const p of predictions) {
+    const match = matches.find((m) => m.id === p.matchId);
+    if (match) {
+      predByMatchNumberGet.set(match.matchNumber, {
+        homeScore: p.homeScore,
+        awayScore: p.awayScore,
+        winnerOnPenaltiesTeamId: p.winnerOnPenaltiesTeamId,
+      });
+    }
+  }
+  function resolveWLGet(matchNumber: number) {
+    const slot = resolved[matchNumber];
+    const pred = predByMatchNumberGet.get(matchNumber);
+    if (!slot?.homeTeamId || !slot?.awayTeamId || !pred) return { winner: null, loser: null };
+    if (pred.homeScore > pred.awayScore) return { winner: slot.homeTeamId, loser: slot.awayTeamId };
+    if (pred.awayScore > pred.homeScore) return { winner: slot.awayTeamId, loser: slot.homeTeamId };
+    if (pred.winnerOnPenaltiesTeamId === slot.homeTeamId) return { winner: slot.homeTeamId, loser: slot.awayTeamId };
+    if (pred.winnerOnPenaltiesTeamId === slot.awayTeamId) return { winner: slot.awayTeamId, loser: slot.homeTeamId };
+    return { winner: null, loser: null };
+  }
+  const finalWL = resolveWLGet(104);
+  const thirdWL = resolveWLGet(103);
+  const derived = {
+    championTeamId: finalWL.winner,
+    runnerUpTeamId: finalWL.loser,
+    thirdPlaceTeamId: thirdWL.winner,
+  };
+
   return NextResponse.json({
     quiniela: { id: quiniela.id, name: quiniela.name },
     matches: enrichedMatches,
@@ -133,6 +163,7 @@ export async function GET(request: NextRequest) {
     predictions,
     tournamentPicks,
     standings: standingsArray,
+    derived,
     canEdit: puedeCrearQuiniela(),
   });
 }
@@ -259,7 +290,73 @@ export async function POST(request: NextRequest) {
     });
   }
 
-  const ALLOWED_TYPES = ["CHAMPION", "RUNNER_UP", "THIRD_PLACE", "TOP_SCORER"];
+  // ---------------------------------------------------------------
+  // Auto-derive Champion / Runner-up / Third place from final + 3rd-place match
+  // ---------------------------------------------------------------
+  const predByMatchNumber = new Map<number, { homeScore: number; awayScore: number; winnerOnPenaltiesTeamId: string | null }>();
+  const allPredsWithMatch = await prisma.prediction.findMany({
+    where: { quinielaId },
+    include: { match: { select: { matchNumber: true } } },
+  });
+  for (const p of allPredsWithMatch) {
+    predByMatchNumber.set(p.match.matchNumber, {
+      homeScore: p.homeScore,
+      awayScore: p.awayScore,
+      winnerOnPenaltiesTeamId: p.winnerOnPenaltiesTeamId,
+    });
+  }
+
+  function resolveWinnerLoser(matchNumber: number): { winner: string | null; loser: string | null } {
+    const slot = resolved[matchNumber];
+    const pred = predByMatchNumber.get(matchNumber);
+    if (!slot?.homeTeamId || !slot?.awayTeamId || !pred) {
+      return { winner: null, loser: null };
+    }
+    if (pred.homeScore > pred.awayScore) return { winner: slot.homeTeamId, loser: slot.awayTeamId };
+    if (pred.awayScore > pred.homeScore) return { winner: slot.awayTeamId, loser: slot.homeTeamId };
+    // Tie -> penalty winner
+    if (pred.winnerOnPenaltiesTeamId === slot.homeTeamId) {
+      return { winner: slot.homeTeamId, loser: slot.awayTeamId };
+    }
+    if (pred.winnerOnPenaltiesTeamId === slot.awayTeamId) {
+      return { winner: slot.awayTeamId, loser: slot.homeTeamId };
+    }
+    return { winner: null, loser: null };
+  }
+
+  const finalRes = resolveWinnerLoser(104);
+  const thirdPlaceRes = resolveWinnerLoser(103);
+
+  const autoDerived: Array<{ type: string; teamId: string | null }> = [
+    { type: "CHAMPION", teamId: finalRes.winner },
+    { type: "RUNNER_UP", teamId: finalRes.loser },
+    { type: "THIRD_PLACE", teamId: thirdPlaceRes.winner },
+  ];
+
+  for (const d of autoDerived) {
+    // Delete any existing entry for this type
+    await prisma.tournamentPrediction.deleteMany({
+      where: {
+        quinielaId,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        type: d.type as any,
+        groupId: null,
+      },
+    });
+    if (d.teamId) {
+      await prisma.tournamentPrediction.create({
+        data: {
+          userId: session.user.id,
+          quinielaId,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          type: d.type as any,
+          teamId: d.teamId,
+        },
+      });
+    }
+  }
+
+  const ALLOWED_TYPES = ["TOP_SCORER"];
 
   // Handle tournament picks separately (delete-and-recreate for simplicity)
   for (const t of tournamentPicks) {

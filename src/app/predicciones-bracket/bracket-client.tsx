@@ -105,6 +105,11 @@ export default function BracketClient({
     TOP_SCORER: "",
   });
   const [standings, setStandings] = useState<GroupStandings[]>([]);
+  const [derived, setDerived] = useState<{
+    championTeamId: string | null;
+    runnerUpTeamId: string | null;
+    thirdPlaceTeamId: string | null;
+  }>({ championTeamId: null, runnerUpTeamId: null, thirdPlaceTeamId: null });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savedAt, setSavedAt] = useState<number | null>(null);
@@ -155,6 +160,9 @@ export default function BracketClient({
       }
       setTournament(tp);
       setStandings(d.standings ?? []);
+      setDerived(
+        d.derived ?? { championTeamId: null, runnerUpTeamId: null, thirdPlaceTeamId: null }
+      );
     }
     setLoading(false);
   }, [activeQuinielaId]);
@@ -337,6 +345,7 @@ export default function BracketClient({
           teams={teams}
           tournament={tournament}
           setTournament={setTournament}
+          derived={derived}
           disabled={!canEdit}
         />
       ) : (activePhase as string) === "STANDINGS" ? (
@@ -602,6 +611,7 @@ function TournamentSection({
   teams,
   tournament,
   setTournament,
+  derived,
   disabled,
 }: {
   teams: TeamLite[];
@@ -609,66 +619,70 @@ function TournamentSection({
   setTournament: (
     upd: (prev: Record<string, string>) => Record<string, string>
   ) => void;
+  derived: {
+    championTeamId: string | null;
+    runnerUpTeamId: string | null;
+    thirdPlaceTeamId: string | null;
+  };
   disabled: boolean;
 }) {
   const set = (k: string, v: string) =>
     setTournament((prev) => ({ ...prev, [k]: v }));
 
+  const teamLabel = (id: string | null) => {
+    if (!id) return null;
+    const t = teams.find((tt) => tt.id === id);
+    if (!t) return null;
+    return `${t.flag ?? ""} ${t.name}`.trim();
+  };
+
+  const TBD = (
+    <p className="text-xs text-muted-foreground italic">
+      Llena las eliminatorias para que se calcule
+    </p>
+  );
+
   return (
     <Card>
       <CardHeader>
         <CardTitle className="text-lg">Predicciones del torneo</CardTitle>
+        <p className="text-xs text-muted-foreground">
+          Campeon, subcampeon y tercer lugar se <strong>calculan automaticamente</strong>{" "}
+          segun tus predicciones de las fases finales.
+        </p>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-1">
           <Label>🏆 Campeon</Label>
-          <select
-            value={tournament.CHAMPION}
-            onChange={(e) => set("CHAMPION", e.target.value)}
-            disabled={disabled}
-            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-          >
-            <option value="">--</option>
-            {teams.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.name}
-              </option>
-            ))}
-          </select>
+          {teamLabel(derived.championTeamId) ? (
+            <p className="text-base font-semibold text-yellow-700">
+              {teamLabel(derived.championTeamId)}
+            </p>
+          ) : (
+            TBD
+          )}
         </div>
         <div className="space-y-1">
           <Label>🥈 Subcampeon</Label>
-          <select
-            value={tournament.RUNNER_UP}
-            onChange={(e) => set("RUNNER_UP", e.target.value)}
-            disabled={disabled}
-            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-          >
-            <option value="">--</option>
-            {teams.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.name}
-              </option>
-            ))}
-          </select>
+          {teamLabel(derived.runnerUpTeamId) ? (
+            <p className="text-base font-semibold">
+              {teamLabel(derived.runnerUpTeamId)}
+            </p>
+          ) : (
+            TBD
+          )}
         </div>
         <div className="space-y-1">
           <Label>🥉 Tercer lugar</Label>
-          <select
-            value={tournament.THIRD_PLACE}
-            onChange={(e) => set("THIRD_PLACE", e.target.value)}
-            disabled={disabled}
-            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-          >
-            <option value="">--</option>
-            {teams.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.name}
-              </option>
-            ))}
-          </select>
+          {teamLabel(derived.thirdPlaceTeamId) ? (
+            <p className="text-base font-semibold">
+              {teamLabel(derived.thirdPlaceTeamId)}
+            </p>
+          ) : (
+            TBD
+          )}
         </div>
-        <div className="space-y-1">
+        <div className="space-y-1 pt-3 border-t">
           <Label>⚽ Goleador del torneo</Label>
           <Input
             value={tournament.TOP_SCORER}
@@ -676,6 +690,9 @@ function TournamentSection({
             disabled={disabled}
             placeholder="Nombre del jugador"
           />
+          <p className="text-xs text-muted-foreground">
+            Este si lo eliges tu (no se puede derivar de los marcadores).
+          </p>
         </div>
       </CardContent>
     </Card>
