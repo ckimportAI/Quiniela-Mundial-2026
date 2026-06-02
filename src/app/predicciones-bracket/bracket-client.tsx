@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Save, CheckCircle2 } from "lucide-react";
+import { Loader2, Save, CheckCircle2, AlertCircle } from "lucide-react";
 
 type Phase =
   | "GROUP_STAGE"
@@ -65,6 +65,16 @@ const PHASE_ORDER: Phase[] = [
   "FINAL",
 ];
 
+interface CompletenessData {
+  percent: number;
+  isComplete: boolean;
+  totalRequired: number;
+  totalFilled: number;
+  phases: Array<{ phase: string; total: number; filled: number; fillable: number }>;
+  openTiesCount: number;
+  topScorerFilled: boolean;
+}
+
 interface StandingRow {
   rank: number;
   teamId: string;
@@ -110,6 +120,7 @@ export default function BracketClient({
     runnerUpTeamId: string | null;
     thirdPlaceTeamId: string | null;
   }>({ championTeamId: null, runnerUpTeamId: null, thirdPlaceTeamId: null });
+  const [completeness, setCompleteness] = useState<CompletenessData | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savedAt, setSavedAt] = useState<number | null>(null);
@@ -163,6 +174,7 @@ export default function BracketClient({
       setDerived(
         d.derived ?? { championTeamId: null, runnerUpTeamId: null, thirdPlaceTeamId: null }
       );
+      setCompleteness(d.completeness ?? null);
     }
     setLoading(false);
   }, [activeQuinielaId]);
@@ -278,6 +290,8 @@ export default function BracketClient({
           El periodo para editar predicciones ha cerrado.
         </div>
       )}
+
+      {completeness && <CompletenessBanner data={completeness} />}
 
       {/* Phase tabs */}
       <div className="overflow-x-auto">
@@ -529,6 +543,109 @@ function PhaseSection({
           </Card>
         );
       })}
+    </div>
+  );
+}
+
+const PHASE_NAMES_FOR_BANNER: Record<string, string> = {
+  GROUP_STAGE: "Fase de grupos",
+  ROUND_OF_32: "Treintaidosavos",
+  ROUND_OF_16: "Octavos",
+  QUARTER_FINALS: "Cuartos",
+  SEMI_FINALS: "Semifinal",
+  THIRD_PLACE: "Tercer Lugar",
+  FINAL: "Final",
+};
+
+function CompletenessBanner({ data }: { data: CompletenessData }) {
+  if (data.isComplete) {
+    return (
+      <div className="rounded-lg bg-green-50 border-2 border-green-300 p-4">
+        <div className="flex items-center gap-3">
+          <CheckCircle2 className="h-6 w-6 text-green-700 flex-shrink-0" />
+          <div>
+            <p className="font-bold text-green-900">Tu quiniela esta completa!</p>
+            <p className="text-xs text-green-800">
+              {data.totalFilled} de {data.totalRequired} predicciones cargadas.
+              Puedes seguir editando hasta el cierre.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const missing: string[] = [];
+  for (const ph of data.phases) {
+    if (ph.fillable === 0) continue;
+    const remaining = ph.fillable - ph.filled;
+    if (remaining > 0) {
+      missing.push(
+        `${PHASE_NAMES_FOR_BANNER[ph.phase] ?? ph.phase}: faltan ${remaining}/${ph.fillable}`
+      );
+    }
+  }
+  if (data.openTiesCount > 0) {
+    missing.push(
+      `${data.openTiesCount} empate${data.openTiesCount > 1 ? "s" : ""} sin ganador por penales`
+    );
+  }
+  if (!data.topScorerFilled) {
+    missing.push("Goleador del torneo");
+  }
+
+  // Hint about future phases that can't yet be filled
+  const phaseLocked: string[] = [];
+  for (const ph of data.phases) {
+    if (ph.total > 0 && ph.fillable < ph.total) {
+      const locked = ph.total - ph.fillable;
+      phaseLocked.push(
+        `${PHASE_NAMES_FOR_BANNER[ph.phase] ?? ph.phase} (${locked} partido${locked > 1 ? "s" : ""})`
+      );
+    }
+  }
+
+  return (
+    <div className="rounded-lg bg-amber-50 border-2 border-amber-300 p-4 space-y-3">
+      <div className="flex items-start gap-3">
+        <AlertCircle className="h-6 w-6 text-amber-700 flex-shrink-0 mt-0.5" />
+        <div className="flex-1">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <p className="font-bold text-amber-900">
+              Tu quiniela no esta completa
+            </p>
+            <span className="text-xs font-semibold text-amber-900 bg-amber-200 px-2 py-0.5 rounded-full">
+              {data.percent}%
+            </span>
+          </div>
+          <div className="mt-2 h-2 rounded-full bg-amber-200 overflow-hidden">
+            <div
+              className="h-full bg-amber-600 transition-all"
+              style={{ width: `${data.percent}%` }}
+            />
+          </div>
+          <p className="text-xs text-amber-800 mt-2">
+            {data.totalFilled}/{data.totalRequired} predicciones cargadas
+          </p>
+        </div>
+      </div>
+
+      {missing.length > 0 && (
+        <div className="rounded bg-white/70 p-3 text-xs space-y-1">
+          <p className="font-semibold text-amber-900">Te falta:</p>
+          <ul className="list-disc list-inside text-amber-900 space-y-0.5">
+            {missing.map((m, i) => (
+              <li key={i}>{m}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {phaseLocked.length > 0 && (
+        <p className="text-[11px] text-amber-700/80 italic">
+          Tip: {phaseLocked.join(", ")} se desbloquean cuando termines la fase anterior.
+        </p>
+      )}
     </div>
   );
 }

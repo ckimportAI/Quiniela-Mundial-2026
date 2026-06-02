@@ -156,6 +156,70 @@ export async function GET(request: NextRequest) {
     thirdPlaceTeamId: thirdWL.winner,
   };
 
+  // ---------------------------------------------------------------
+  // Completeness report
+  // ---------------------------------------------------------------
+  const phaseTotals = {
+    GROUP_STAGE: 0,
+    ROUND_OF_32: 0,
+    ROUND_OF_16: 0,
+    QUARTER_FINALS: 0,
+    SEMI_FINALS: 0,
+    THIRD_PLACE: 0,
+    FINAL: 0,
+  } as Record<string, number>;
+  const phaseFilled = { ...phaseTotals };
+  const phaseFillable = { ...phaseTotals }; // KO matches where both teams are resolved
+
+  let openTiesCount = 0;
+
+  for (const m of matches) {
+    phaseTotals[m.phase] = (phaseTotals[m.phase] ?? 0) + 1;
+    const r = resolved[m.matchNumber];
+    const bothTeamsKnown =
+      m.phase === "GROUP_STAGE"
+        ? !!(m.homeTeamId && m.awayTeamId)
+        : !!(r?.homeTeamId && r?.awayTeamId);
+    if (bothTeamsKnown) phaseFillable[m.phase] = (phaseFillable[m.phase] ?? 0) + 1;
+
+    const pred = predictions.find((p) => p.matchId === m.id);
+    if (pred) {
+      phaseFilled[m.phase] = (phaseFilled[m.phase] ?? 0) + 1;
+      // KO ties without penalty winner
+      if (
+        m.phase !== "GROUP_STAGE" &&
+        pred.homeScore === pred.awayScore &&
+        bothTeamsKnown &&
+        !pred.winnerOnPenaltiesTeamId
+      ) {
+        openTiesCount++;
+      }
+    }
+  }
+
+  const topScorerEntry = tournamentPicks.find((t) => t.type === "TOP_SCORER");
+  const topScorerFilled = !!(topScorerEntry?.playerName && topScorerEntry.playerName.trim());
+
+  const totalRequired = matches.length + 1; // matches + top scorer
+  const totalFilled =
+    Object.values(phaseFilled).reduce((a, b) => a + b, 0) + (topScorerFilled ? 1 : 0);
+  const percent = Math.round((totalFilled / totalRequired) * 100);
+
+  const completeness = {
+    percent,
+    isComplete: totalFilled === totalRequired && openTiesCount === 0,
+    totalRequired,
+    totalFilled,
+    phases: Object.keys(phaseTotals).map((phase) => ({
+      phase,
+      total: phaseTotals[phase],
+      filled: phaseFilled[phase],
+      fillable: phaseFillable[phase],
+    })),
+    openTiesCount,
+    topScorerFilled,
+  };
+
   return NextResponse.json({
     quiniela: { id: quiniela.id, name: quiniela.name },
     matches: enrichedMatches,
@@ -164,6 +228,7 @@ export async function GET(request: NextRequest) {
     tournamentPicks,
     standings: standingsArray,
     derived,
+    completeness,
     canEdit: puedeCrearQuiniela(),
   });
 }
