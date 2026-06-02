@@ -1,4 +1,6 @@
 import { prisma } from "@/lib/prisma";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import {
   Table,
   TableBody,
@@ -16,8 +18,35 @@ export const metadata = {
 };
 
 export default async function LeaderboardPage() {
-  // Fetch all quinielas (including test quinielas during beta)
+  // Determine scoping based on viewer's liga context
+  // - Liga members or owners -> their liga's leaderboard
+  // - Everyone else -> general (ligaId IS NULL OR alsoInGeneral = true)
+  const session = await getServerSession(authOptions);
+  let viewingLigaId: string | null = null;
+  let viewingLigaName: string | null = null;
+  if (session?.user?.id) {
+    const u = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: {
+        ligaId: true,
+        liga: { select: { name: true } },
+        ownedLigas: {
+          where: { active: true },
+          select: { id: true, name: true },
+          take: 1,
+        },
+      },
+    });
+    viewingLigaId = u?.ligaId ?? u?.ownedLigas?.[0]?.id ?? null;
+    viewingLigaName = u?.liga?.name ?? u?.ownedLigas?.[0]?.name ?? null;
+  }
+
+  const where = viewingLigaId
+    ? { ligaId: viewingLigaId }
+    : { OR: [{ ligaId: null }, { alsoInGeneral: true }] };
+
   const quinielas = await prisma.quiniela.findMany({
+    where,
     include: {
       user: {
         select: { id: true, name: true, nickname: true, image: true },
@@ -42,9 +71,13 @@ export default async function LeaderboardPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Leaderboard</h1>
+        <h1 className="text-3xl font-bold tracking-tight">
+          {viewingLigaName ? `Leaderboard · ${viewingLigaName}` : "Leaderboard"}
+        </h1>
         <p className="text-muted-foreground">
-          Clasificacion general de todas las quinielas.{" "}
+          {viewingLigaName
+            ? "Clasificacion privada de tu liga."
+            : "Clasificacion general de todas las quinielas."}{" "}
           <span className="font-medium">{quinielas.length} participantes</span>
         </p>
       </div>
