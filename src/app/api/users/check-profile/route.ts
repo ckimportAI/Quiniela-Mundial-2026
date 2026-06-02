@@ -10,10 +10,21 @@ export async function GET(req: NextRequest) {
 
   const user = await prisma.user.findUnique({
     where: { email },
-    select: { nickname: true },
+    select: {
+      id: true,
+      nickname: true,
+      ligaId: true,
+      ownedLigas: {
+        where: { active: true },
+        select: { slug: true },
+        take: 1,
+      },
+    },
   });
 
   return NextResponse.json({
     hasNickname: !!user?.nickname,
+    isLigaOwner: (user?.ownedLigas?.length ?? 0) > 0,
+    isLigaMember: !!user?.ligaId,
   });
 }

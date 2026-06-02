@@ -50,12 +50,19 @@ function LoginForm() {
         return;
       }
 
-      // Check nickname to decide onboarding vs predicciones
+      // Routing priority:
+      // 1. Liga owner -> their admin panel (skip onboarding; they don't play)
+      // 2. No nickname -> onboarding
+      // 3. Otherwise -> predicciones
       const checkRes = await fetch(
         `/api/users/check-profile?email=${encodeURIComponent(email)}`
       );
       if (checkRes.ok) {
         const profile = await checkRes.json();
+        if (profile.isLigaOwner) {
+          window.location.href = "/liga-admin";
+          return;
+        }
         if (!profile.hasNickname) {
           window.location.href = "/onboarding";
           return;

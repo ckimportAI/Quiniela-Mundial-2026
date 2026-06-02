@@ -2,6 +2,7 @@
 
 import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,6 +15,15 @@ import {
 
 export function UserButton() {
   const { data: session } = useSession();
+  const [isLigaOwner, setIsLigaOwner] = useState(false);
+
+  useEffect(() => {
+    if (!session?.user?.email) return;
+    fetch(`/api/users/check-profile?email=${encodeURIComponent(session.user.email)}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => setIsLigaOwner(!!d?.isLigaOwner))
+      .catch(() => {});
+  }, [session?.user?.email]);
 
   if (!session?.user) {
     return (
@@ -71,6 +81,14 @@ export function UserButton() {
         <DropdownMenuItem asChild>
           <Link href="/tabla">Leaderboard</Link>
         </DropdownMenuItem>
+        {isLigaOwner && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem asChild>
+              <Link href="/liga-admin">Panel de mi Liga</Link>
+            </DropdownMenuItem>
+          </>
+        )}
         {session.user.role === "ADMIN" && (
           <>
             <DropdownMenuSeparator />
