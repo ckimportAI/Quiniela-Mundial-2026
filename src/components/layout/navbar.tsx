@@ -39,11 +39,13 @@ export function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isLigaOwner, setIsLigaOwner] = useState(false);
   const [isLigaMember, setIsLigaMember] = useState(false);
+  const [bracketIncomplete, setBracketIncomplete] = useState(false);
 
   useEffect(() => {
     if (!session?.user?.email) {
       setIsLigaOwner(false);
       setIsLigaMember(false);
+      setBracketIncomplete(false);
       return;
     }
     fetch(`/api/users/check-profile?email=${encodeURIComponent(session.user.email)}`)
@@ -51,6 +53,7 @@ export function Navbar() {
       .then((d) => {
         setIsLigaOwner(!!d?.isLigaOwner);
         setIsLigaMember(!!d?.isLigaMember);
+        setBracketIncomplete(!!d?.bracketIncomplete);
       })
       .catch(() => {});
   }, [session?.user?.email]);
@@ -70,20 +73,32 @@ export function Navbar() {
 
         {/* Desktop nav */}
         <nav className="hidden md:flex items-center space-x-6 text-sm font-medium">
-          {links.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className={cn(
-                "transition-colors hover:text-foreground/80",
-                pathname === link.href
-                  ? "text-foreground"
-                  : "text-foreground/60"
-              )}
-            >
-              {link.label}
-            </Link>
-          ))}
+          {links.map((link) => {
+            const showAlert =
+              link.href === "/predicciones-bracket" &&
+              isLigaMember &&
+              bracketIncomplete;
+            return (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={cn(
+                  "relative transition-colors hover:text-foreground/80",
+                  pathname === link.href
+                    ? "text-foreground"
+                    : "text-foreground/60"
+                )}
+              >
+                {link.label}
+                {showAlert && (
+                  <span
+                    className="absolute -top-1 -right-2 h-2 w-2 rounded-full bg-red-500 ring-2 ring-background animate-pulse"
+                    aria-label="Quiniela incompleta"
+                  />
+                )}
+              </Link>
+            );
+          })}
         </nav>
 
         <div className="ml-auto flex items-center space-x-4">
@@ -102,21 +117,33 @@ export function Navbar() {
       {/* Mobile menu */}
       {mobileOpen && (
         <nav className="md:hidden border-t bg-background px-4 pb-4 pt-2 space-y-1">
-          {links.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              onClick={() => setMobileOpen(false)}
-              className={cn(
-                "block rounded-md px-3 py-2 text-sm font-medium transition-colors",
-                pathname === link.href
-                  ? "bg-accent text-foreground"
-                  : "text-foreground/60 hover:bg-accent hover:text-foreground"
-              )}
-            >
-              {link.label}
-            </Link>
-          ))}
+          {links.map((link) => {
+            const showAlert =
+              link.href === "/predicciones-bracket" &&
+              isLigaMember &&
+              bracketIncomplete;
+            return (
+              <Link
+                key={link.href}
+                href={link.href}
+                onClick={() => setMobileOpen(false)}
+                className={cn(
+                  "flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                  pathname === link.href
+                    ? "bg-accent text-foreground"
+                    : "text-foreground/60 hover:bg-accent hover:text-foreground"
+                )}
+              >
+                <span>{link.label}</span>
+                {showAlert && (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-bold text-red-700 bg-red-100 px-2 py-0.5 rounded-full animate-pulse">
+                    <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
+                    Incompleta
+                  </span>
+                )}
+              </Link>
+            );
+          })}
         </nav>
       )}
     </header>
