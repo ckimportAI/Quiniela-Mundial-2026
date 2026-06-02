@@ -12,21 +12,21 @@ const QUINIELA_NAME = "ckpaz15-1";
 // Mirror of BRACKET_PAIRINGS for R32 only (matches 73-88)
 const R32_PAIRINGS = {
   73: { home: "W:A", away: "R:B" },
-  74: { home: "W:C", away: "3:D" },
+  74: { home: "W:C", away: "3B:1" },
   75: { home: "W:E", away: "R:F" },
-  76: { home: "W:G", away: "3:H" },
+  76: { home: "W:G", away: "3B:2" },
   77: { home: "W:B", away: "R:A" },
-  78: { home: "W:D", away: "3:C" },
+  78: { home: "W:D", away: "3B:3" },
   79: { home: "W:F", away: "R:E" },
-  80: { home: "W:H", away: "3:G" },
+  80: { home: "W:H", away: "3B:4" },
   81: { home: "W:I", away: "R:J" },
-  82: { home: "W:K", away: "3:L" },
+  82: { home: "W:K", away: "3B:5" },
   83: { home: "R:C", away: "R:D" },
-  84: { home: "W:J", away: "3:I" },
-  85: { home: "W:L", away: "3:K" },
+  84: { home: "W:J", away: "3B:6" },
+  85: { home: "W:L", away: "3B:7" },
   86: { home: "R:G", away: "R:H" },
   87: { home: "R:I", away: "R:L" },
-  88: { home: "R:K", away: "3:F" },
+  88: { home: "R:K", away: "3B:8" },
 };
 
 function genId() {
@@ -101,16 +101,19 @@ async function main() {
     standings.set(g, list);
   }
 
-  // Best 3rds
+  // Best 3rds (ranked array)
   const thirds = [];
   for (const list of standings.values()) if (list[2]) thirds.push(list[2]);
   thirds.sort(sortStandings);
-  const bestThirds = new Map(thirds.slice(0, 8).map((s) => [s.groupName, s]));
+  const bestThirdsRanked = thirds.slice(0, 8);
 
   function resolveSlot(code) {
     if (code.startsWith("W:")) return standings.get(code.slice(2))?.[0]?.teamId ?? null;
     if (code.startsWith("R:")) return standings.get(code.slice(2))?.[1]?.teamId ?? null;
-    if (code.startsWith("3:")) return bestThirds.get(code.slice(2))?.teamId ?? null;
+    if (code.startsWith("3B:")) {
+      const idx = parseInt(code.slice(3), 10) - 1;
+      return bestThirdsRanked[idx]?.teamId ?? null;
+    }
     return null;
   }
 

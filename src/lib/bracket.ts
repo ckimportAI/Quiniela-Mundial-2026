@@ -63,25 +63,26 @@ interface SlotConfig {
   away: string;
 }
 
-// R32: matches 73-88. Mix of W vs R, W vs 3rd, and R vs 3rd pairings.
-// Layout chosen to keep each bracket half balanced.
+// R32: matches 73-88.
+// 8 slots use "3B:N" = the N-th best third-placed team (ranked by points/GD/GF),
+// so all 8 slots are always filled regardless of which groups qualify.
 const R32_PAIRINGS: Record<number, SlotConfig> = {
   73: { home: "W:A", away: "R:B" },
-  74: { home: "W:C", away: "3:D" },
+  74: { home: "W:C", away: "3B:1" },
   75: { home: "W:E", away: "R:F" },
-  76: { home: "W:G", away: "3:H" },
+  76: { home: "W:G", away: "3B:2" },
   77: { home: "W:B", away: "R:A" },
-  78: { home: "W:D", away: "3:C" },
+  78: { home: "W:D", away: "3B:3" },
   79: { home: "W:F", away: "R:E" },
-  80: { home: "W:H", away: "3:G" },
+  80: { home: "W:H", away: "3B:4" },
   81: { home: "W:I", away: "R:J" },
-  82: { home: "W:K", away: "3:L" },
+  82: { home: "W:K", away: "3B:5" },
   83: { home: "R:C", away: "R:D" },
-  84: { home: "W:J", away: "3:I" },
-  85: { home: "W:L", away: "3:K" },
+  84: { home: "W:J", away: "3B:6" },
+  85: { home: "W:L", away: "3B:7" },
   86: { home: "R:G", away: "R:H" },
   87: { home: "R:I", away: "R:L" },
-  88: { home: "R:K", away: "3:F" },
+  88: { home: "R:K", away: "3B:8" },
 };
 
 // R16: matches 89-96. Each match feeds from two R32 winners.
@@ -206,7 +207,7 @@ function sortByStandings(a: GroupStanding, b: GroupStanding): number {
 
 /**
  * Pick the 8 best 3rd-place teams across the 12 groups (top by points/GD/GF).
- * Returns a Map<groupName, GroupStanding> of the 8 advancing 3rd-places only.
+ * Returns a Map<groupName, GroupStanding> of the 8 advancing 3rd-places.
  */
 export function pickBestThirds(
   standingsByGroup: Map<string, GroupStanding[]>
@@ -218,6 +219,21 @@ export function pickBestThirds(
   thirds.sort(sortByStandings);
   const top8 = thirds.slice(0, 8);
   return new Map(top8.map((s) => [s.groupName, s]));
+}
+
+/**
+ * Same input but returns the best 3rds as an ORDERED ARRAY (1st best, 2nd best, ...)
+ * Used by slot codes like "3B:N".
+ */
+export function pickBestThirdsRanked(
+  standingsByGroup: Map<string, GroupStanding[]>
+): GroupStanding[] {
+  const thirds: GroupStanding[] = [];
+  for (const list of standingsByGroup.values()) {
+    if (list[2]) thirds.push(list[2]);
+  }
+  thirds.sort(sortByStandings);
+  return thirds.slice(0, 8);
 }
 
 // ---------------------------------------------------------------
@@ -234,6 +250,7 @@ export function resolveBracket(
 ): ResolvedBracket {
   const standings = computeAllGroupStandings(matches, predictions);
   const bestThirds = pickBestThirds(standings);
+  const bestThirdsRanked = pickBestThirdsRanked(standings);
   const predByMatchNumber = new Map<number, PredictionInfo>();
   const matchById = new Map(matches.map((m) => [m.id, m]));
   for (const p of predictions) {
@@ -257,6 +274,10 @@ export function resolveBracket(
       const g = code.slice(2);
       const third = bestThirds.get(g);
       return third?.teamId ?? null;
+    }
+    if (code.startsWith("3B:")) {
+      const idx = parseInt(code.slice(3), 10) - 1;
+      return bestThirdsRanked[idx]?.teamId ?? null;
     }
     if (code.startsWith("WM:")) {
       const n = parseInt(code.slice(3), 10);
@@ -321,6 +342,7 @@ function humanizeSlot(code: string): string {
   if (code.startsWith("W:")) return `Ganador ${code.slice(2)}`;
   if (code.startsWith("R:")) return `2do ${code.slice(2)}`;
   if (code.startsWith("3:")) return `3ro ${code.slice(2)}`;
+  if (code.startsWith("3B:")) return `${code.slice(3)}o mejor 3ro`;
   if (code.startsWith("WM:")) return `Ganador #${code.slice(3)}`;
   if (code.startsWith("LM:")) return `Perdedor #${code.slice(3)}`;
   return code;
