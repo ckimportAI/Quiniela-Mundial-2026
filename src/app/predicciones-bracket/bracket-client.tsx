@@ -32,6 +32,9 @@ interface MatchLite {
   homeTeam: TeamLite | null;
   awayTeam: TeamLite | null;
   group?: { name: string } | null;
+  resolvedHomeTeam?: TeamLite | null;
+  resolvedAwayTeam?: TeamLite | null;
+  slotLabel?: { home: string; away: string } | null;
 }
 
 interface MatchPick {
@@ -183,8 +186,11 @@ export default function BracketClient({
       }),
     });
     setSaving(false);
-    if (r.ok) setSavedAt(Date.now());
-    else {
+    if (r.ok) {
+      setSavedAt(Date.now());
+      // Reload bracket so KO matches reflect updated group standings
+      load();
+    } else {
       const d = await r.json();
       alert(d.error ?? "Error al guardar");
     }
@@ -215,7 +221,9 @@ export default function BracketClient({
         <div>
           <h1 className="text-2xl font-bold">Bracket Completo</h1>
           <p className="text-sm text-muted-foreground">
-            Llena toda tu quiniela de una vez: grupos + eliminatorias + torneo.
+            Llena los grupos primero. Los equipos de Octavos, Cuartos, Semis y
+            Final se llenan <strong>automaticamente</strong> segun tus
+            predicciones (guarda para refrescar el bracket).
           </p>
         </div>
         {quinielas.length > 1 && (
@@ -300,7 +308,6 @@ export default function BracketClient({
         <PhaseSection
           phase={activePhase}
           matches={matchesByPhase[activePhase] ?? []}
-          teams={teams}
           picks={picks}
           updatePick={updatePick}
           disabled={!canEdit}
@@ -341,14 +348,12 @@ export default function BracketClient({
 function PhaseSection({
   phase,
   matches,
-  teams,
   picks,
   updatePick,
   disabled,
 }: {
   phase: Phase;
   matches: MatchLite[];
-  teams: TeamLite[];
   picks: Record<string, MatchPick>;
   updatePick: (id: string, patch: Partial<MatchPick>) => void;
   disabled: boolean;
@@ -393,14 +398,14 @@ function PhaseSection({
                     <p className="text-sm font-semibold">
                       {m.homeTeam.flag ?? ""} {m.homeTeam.name}
                     </p>
+                  ) : m.resolvedHomeTeam ? (
+                    <p className="text-sm font-semibold">
+                      {m.resolvedHomeTeam.flag ?? ""} {m.resolvedHomeTeam.name}
+                    </p>
                   ) : (
-                    <TeamSelect
-                      value={pick.predictedHomeTeamId}
-                      teams={teams}
-                      onChange={(v) => updatePick(m.id, { predictedHomeTeamId: v })}
-                      disabled={disabled}
-                      placeholder="Local"
-                    />
+                    <p className="text-xs text-muted-foreground italic">
+                      {m.slotLabel?.home ?? "TBD"}
+                    </p>
                   )}
                 </div>
 
@@ -433,14 +438,14 @@ function PhaseSection({
                     <p className="text-sm font-semibold">
                       {m.awayTeam.name} {m.awayTeam.flag ?? ""}
                     </p>
+                  ) : m.resolvedAwayTeam ? (
+                    <p className="text-sm font-semibold">
+                      {m.resolvedAwayTeam.name} {m.resolvedAwayTeam.flag ?? ""}
+                    </p>
                   ) : (
-                    <TeamSelect
-                      value={pick.predictedAwayTeamId}
-                      teams={teams}
-                      onChange={(v) => updatePick(m.id, { predictedAwayTeamId: v })}
-                      disabled={disabled}
-                      placeholder="Visitante"
-                    />
+                    <p className="text-xs text-muted-foreground italic">
+                      {m.slotLabel?.away ?? "TBD"}
+                    </p>
                   )}
                 </div>
               </div>
@@ -449,36 +454,6 @@ function PhaseSection({
         );
       })}
     </div>
-  );
-}
-
-function TeamSelect({
-  value,
-  teams,
-  onChange,
-  disabled,
-  placeholder,
-}: {
-  value: string;
-  teams: TeamLite[];
-  onChange: (v: string) => void;
-  disabled: boolean;
-  placeholder: string;
-}) {
-  return (
-    <select
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      disabled={disabled}
-      className="w-full rounded-md border border-input bg-background px-2 py-1.5 text-xs"
-    >
-      <option value="">{placeholder}</option>
-      {teams.map((t) => (
-        <option key={t.id} value={t.id}>
-          {t.name}
-        </option>
-      ))}
-    </select>
   );
 }
 

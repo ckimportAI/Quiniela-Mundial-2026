@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { puedeCrearQuiniela } from "@/lib/constants";
+import { resolveBracket, slotLabelFor, type MatchInfo, type PredictionInfo } from "@/lib/bracket";
 
 export const dynamic = "force-dynamic";
 
@@ -63,9 +64,39 @@ export async function GET(request: NextRequest) {
     }),
   ]);
 
+  // Compute resolved bracket from user's group-stage predictions
+  const matchInfos: MatchInfo[] = matches.map((m) => ({
+    id: m.id,
+    matchNumber: m.matchNumber,
+    phase: m.phase,
+    homeTeamId: m.homeTeamId,
+    awayTeamId: m.awayTeamId,
+    group: m.group,
+  }));
+  const predictionInfos: PredictionInfo[] = predictions
+    .map((p) => ({
+      matchId: p.matchId,
+      homeScore: p.homeScore,
+      awayScore: p.awayScore,
+    }));
+  const resolved = resolveBracket(matchInfos, predictionInfos);
+
+  // Enrich each match with resolvedHomeTeamId/awayTeamId + human slot label
+  const teamById = new Map(teams.map((t) => [t.id, t]));
+  const enrichedMatches = matches.map((m) => {
+    const r = resolved[m.matchNumber];
+    const slotLabel = slotLabelFor(m.matchNumber);
+    return {
+      ...m,
+      resolvedHomeTeam: r?.homeTeamId ? teamById.get(r.homeTeamId) ?? null : null,
+      resolvedAwayTeam: r?.awayTeamId ? teamById.get(r.awayTeamId) ?? null : null,
+      slotLabel,
+    };
+  });
+
   return NextResponse.json({
     quiniela: { id: quiniela.id, name: quiniela.name },
-    matches,
+    matches: enrichedMatches,
     teams,
     predictions,
     tournamentPicks,
@@ -116,114 +147,80 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Build upsert operations for each non-empty match pick
+  // Validate match picks (require integer scores in range)
+  const validPicks = matchPicks.filter(
+    (p) =>
+      p.matchId &&
+      p.homeScore != null &&
+      p.awayScore != null &&
+      Number.isInteger(p.homeScore) &&
+      Number.isInteger(p.awayScore) &&
+      p.homeScore >= 0 &&
+      p.awayScore >= 0 &&
+      p.homeScore <= 20 &&
+      p.awayScore <= 20
+  );
+
+  // Save the raw scores first (no predicted teams yet)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const ops: any[] = [];
-
-  for (const p of matchPicks) {
-    if (!p.matchId) continue;
-    // Require both scores to save
-    if (p.homeScore == null || p.awayScore == null) continue;
-    if (!Number.isInteger(p.homeScore) || !Number.isInteger(p.awayScore)) continue;
-    if (p.homeScore < 0 || p.awayScore < 0 || p.homeScore > 20 || p.awayScore > 20) continue;
-
-    ops.push(
-      prisma.prediction.upsert({
-        where: {
-          quinielaId_matchId: {
-            quinielaId,
-            matchId: p.matchId,
-          },
-        },
-        update: {
-          homeScore: p.homeScore,
-          awayScore: p.awayScore,
-          predictedHomeTeamId: p.predictedHomeTeamId ?? null,
-          predictedAwayTeamId: p.predictedAwayTeamId ?? null,
-        },
-        create: {
-          userId: session.user.id,
-          quinielaId,
-          matchId: p.matchId,
-          homeScore: p.homeScore,
-          awayScore: p.awayScore,
-          predictedHomeTeamId: p.predictedHomeTeamId ?? null,
-          predictedAwayTeamId: p.predictedAwayTeamId ?? null,
-        },
-      })
-    );
-  }
-
-  // Tournament picks (CHAMPION, RUNNER_UP, THIRD_PLACE, TOP_SCORER)
-  const ALLOWED_TYPES = ["CHAMPION", "RUNNER_UP", "THIRD_PLACE", "TOP_SCORER"];
-  for (const t of tournamentPicks) {
-    if (!ALLOWED_TYPES.includes(t.type)) continue;
-    const hasTeam = !!t.teamId;
-    const hasPlayer = !!t.playerName;
-    if (!hasTeam && !hasPlayer) continue;
-
-    ops.push(
-      prisma.tournamentPrediction.upsert({
-        where: {
-          quinielaId_type_groupId: {
-            quinielaId,
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            type: t.type as any,
-            // Prisma compound unique requires this exact triple; use empty string sentinel
-            // groupId is nullable but in unique constraint we treat null as ""
-            // To keep consistent we just use upsert by find/then-update fallback below.
-            groupId: "",
-          },
-        },
-        update: {
-          teamId: t.teamId ?? null,
-          playerName: t.playerName ?? null,
-        },
-        create: {
-          userId: session.user.id,
-          quinielaId,
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          type: t.type as any,
-          teamId: t.teamId ?? null,
-          playerName: t.playerName ?? null,
-        },
-      })
-    );
-  }
-
-  // Tournament upsert above relies on groupId in unique, but actual data may have groupId=null.
-  // Fallback: explicit find-or-create per type to be safe.
-  // Replace the tournamentPicks ops with safer logic:
-  ops.length = 0;
-  // Re-add match picks first
-  for (const p of matchPicks) {
-    if (!p.matchId) continue;
-    if (p.homeScore == null || p.awayScore == null) continue;
-    if (!Number.isInteger(p.homeScore) || !Number.isInteger(p.awayScore)) continue;
-    if (p.homeScore < 0 || p.awayScore < 0 || p.homeScore > 20 || p.awayScore > 20) continue;
+  for (const p of validPicks) {
     ops.push(
       prisma.prediction.upsert({
         where: { quinielaId_matchId: { quinielaId, matchId: p.matchId } },
         update: {
-          homeScore: p.homeScore,
-          awayScore: p.awayScore,
-          predictedHomeTeamId: p.predictedHomeTeamId ?? null,
-          predictedAwayTeamId: p.predictedAwayTeamId ?? null,
+          homeScore: p.homeScore!,
+          awayScore: p.awayScore!,
         },
         create: {
           userId: session.user.id,
           quinielaId,
           matchId: p.matchId,
-          homeScore: p.homeScore,
-          awayScore: p.awayScore,
-          predictedHomeTeamId: p.predictedHomeTeamId ?? null,
-          predictedAwayTeamId: p.predictedAwayTeamId ?? null,
+          homeScore: p.homeScore!,
+          awayScore: p.awayScore!,
         },
       })
     );
   }
-
   await prisma.$transaction(ops);
+
+  // Re-resolve bracket and persist resolved teams as predictedHomeTeamId/awayTeamId.
+  // This makes scoring (which compares predictedHomeTeamId vs match.homeTeamId)
+  // award points only when the user's predicted bracket actually materializes.
+  const allMatches = await prisma.match.findMany({
+    include: { group: { select: { name: true } } },
+    orderBy: { matchNumber: "asc" },
+  });
+  const allPreds = await prisma.prediction.findMany({
+    where: { quinielaId },
+    select: { matchId: true, homeScore: true, awayScore: true },
+  });
+  const matchInfos: MatchInfo[] = allMatches.map((m) => ({
+    id: m.id,
+    matchNumber: m.matchNumber,
+    phase: m.phase,
+    homeTeamId: m.homeTeamId,
+    awayTeamId: m.awayTeamId,
+    group: m.group,
+  }));
+  const predInfos: PredictionInfo[] = allPreds;
+  const resolved = resolveBracket(matchInfos, predInfos);
+
+  // For each KO match, update the prediction with the resolved teams
+  for (const m of allMatches) {
+    if (m.phase === "GROUP_STAGE") continue;
+    const r = resolved[m.matchNumber];
+    if (!r) continue;
+    await prisma.prediction.updateMany({
+      where: { quinielaId, matchId: m.id },
+      data: {
+        predictedHomeTeamId: r.homeTeamId,
+        predictedAwayTeamId: r.awayTeamId,
+      },
+    });
+  }
+
+  const ALLOWED_TYPES = ["CHAMPION", "RUNNER_UP", "THIRD_PLACE", "TOP_SCORER"];
 
   // Handle tournament picks separately (delete-and-recreate for simplicity)
   for (const t of tournamentPicks) {
