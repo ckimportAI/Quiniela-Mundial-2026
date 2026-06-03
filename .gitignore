@@ -43,3 +43,5 @@ next-env.d.ts
 /src/generated/prisma
 .claude/
 /uploads/
+Inventario_Equipos_Red.xlsx
+~$*.xlsx
