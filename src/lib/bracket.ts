@@ -24,20 +24,28 @@ export interface MatchInfo {
   dateTime?: Date;
 }
 
+// Minutes to subtract from each phase's first match (buffer before lock).
+export const PHASE_LOCK_BUFFER_MINUTES = 15;
+
 /**
- * Returns per-phase deadlines: each phase's earliest match dateTime.
- * After this moment, predictions for that phase are locked.
+ * Returns per-phase deadlines: each phase's earliest match dateTime
+ * minus PHASE_LOCK_BUFFER_MINUTES. After this moment, predictions
+ * for that phase are locked.
  */
 export function computePhaseDeadlines(
   matches: MatchInfo[]
 ): Record<string, Date> {
-  const out: Record<string, Date> = {};
+  const earliestByPhase: Record<string, Date> = {};
   for (const m of matches) {
     if (!m.dateTime) continue;
-    const existing = out[m.phase];
+    const existing = earliestByPhase[m.phase];
     if (!existing || m.dateTime < existing) {
-      out[m.phase] = m.dateTime;
+      earliestByPhase[m.phase] = m.dateTime;
     }
+  }
+  const out: Record<string, Date> = {};
+  for (const [phase, t] of Object.entries(earliestByPhase)) {
+    out[phase] = new Date(t.getTime() - PHASE_LOCK_BUFFER_MINUTES * 60 * 1000);
   }
   return out;
 }
