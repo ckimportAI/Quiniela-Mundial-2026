@@ -655,6 +655,8 @@ model Liga {
 
   // Scoring rules — when false, all phases score x1 (no knockout bonus)
   usePhaseMultipliers   Boolean  @default(true)
+  // When false, comodines/wildcards are disabled in this liga
+  wildcardsEnabled      Boolean  @default(true)
 
   // Owner's payment methods (members pay him directly)
   pagoMovilPhone  String? @db.VarChar(20)

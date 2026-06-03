@@ -44,20 +44,25 @@ export async function POST(request: NextRequest) {
     include: { quiniela: { select: { ligaId: true } } },
   });
 
-  // Pre-load liga phase-multiplier flags
+  // Pre-load liga scoring config (phase multipliers + wildcards)
   const ligaIds = [...new Set(predictions.map((p) => p.quiniela.ligaId).filter(Boolean) as string[])];
   const ligas = ligaIds.length
     ? await prisma.liga.findMany({
         where: { id: { in: ligaIds } },
-        select: { id: true, usePhaseMultipliers: true },
+        select: { id: true, usePhaseMultipliers: true, wildcardsEnabled: true },
       })
     : [];
   const ligaMultMap = new Map(ligas.map((l) => [l.id, l.usePhaseMultipliers]));
+  const ligaWildMap = new Map(ligas.map((l) => [l.id, l.wildcardsEnabled]));
 
   for (const prediction of predictions) {
     const useMult = prediction.quiniela.ligaId
       ? ligaMultMap.get(prediction.quiniela.ligaId) ?? true
       : true;
+    const wildOk = prediction.quiniela.ligaId
+      ? ligaWildMap.get(prediction.quiniela.ligaId) ?? true
+      : true;
+    const effectiveWildcard = wildOk && prediction.isWildcard;
     // Bracket pick guard: liga members predict KO teams in advance; if their
     // predicted teams don't match the actual match teams, score is 0.
     let pointsBlocked = false;
@@ -80,7 +85,7 @@ export async function POST(request: NextRequest) {
           { homeScore: prediction.homeScore, awayScore: prediction.awayScore },
           { homeScore, awayScore },
           match.phase as MatchPhase,
-          prediction.isWildcard,
+          effectiveWildcard,
           useMult
         );
 

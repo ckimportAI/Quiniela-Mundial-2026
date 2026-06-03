@@ -71,6 +71,10 @@ export function calculateMatchPoints(
 
   let points = Math.round(basePoints * multiplier);
 
+  // Wildcard only doubles when the liga (or main) allows wildcards.
+  // The caller passes usePhaseMultipliers separately; wildcards are gated
+  // by isWildcard alone, but the prediction's isWildcard flag is only set
+  // if the user enabled it (and that's gated client-side per liga config).
   if (isWildcard && points > 0) {
     points *= WILDCARD_MULTIPLIER;
   }

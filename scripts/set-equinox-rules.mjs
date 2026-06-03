@@ -42,6 +42,7 @@ Los premios se pagan en Bolivares, Zelle o Binance, segun los pagos que se hayan
 
 📋 REGLAS ADICIONALES
 
+• Sin comodines: en esta liga NO se usan comodines/multiplicadores especiales.
 • Tiempo regular: los marcadores cuentan al final del minuto 90. Tiempo extra y penales NO afectan la puntuacion (los penales solo se usan para definir quien avanza en tu bracket personal cuando hay empate en eliminatoria).
 • Empate en el leaderboard: si 2 o mas participantes empatan en un puesto premiado, el premio se divide en partes iguales.
 • Partidos sin prediccion: 0 puntos.
