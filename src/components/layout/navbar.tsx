@@ -40,12 +40,14 @@ export function Navbar() {
   const [isLigaOwner, setIsLigaOwner] = useState(false);
   const [isLigaMember, setIsLigaMember] = useState(false);
   const [bracketIncomplete, setBracketIncomplete] = useState(false);
+  const [ligaSlug, setLigaSlug] = useState<string | null>(null);
 
   useEffect(() => {
     if (!session?.user?.email) {
       setIsLigaOwner(false);
       setIsLigaMember(false);
       setBracketIncomplete(false);
+      setLigaSlug(null);
       return;
     }
     fetch(`/api/users/check-profile?email=${encodeURIComponent(session.user.email)}`)
@@ -54,13 +56,18 @@ export function Navbar() {
         setIsLigaOwner(!!d?.isLigaOwner);
         setIsLigaMember(!!d?.isLigaMember);
         setBracketIncomplete(!!d?.bracketIncomplete);
+        setLigaSlug(d?.ligaSlug ?? null);
       })
       .catch(() => {});
   }, [session?.user?.email]);
 
   let authLinks = generalAuthLinks;
   if (isLigaOwner) authLinks = ligaOwnerLinks;
-  else if (isLigaMember) authLinks = ligaMemberLinks;
+  else if (isLigaMember) {
+    authLinks = ligaSlug
+      ? [...ligaMemberLinks, { href: `/liga/${ligaSlug}`, label: "Reglas" }]
+      : ligaMemberLinks;
+  }
 
   const links = session ? [...publicLinks, ...authLinks] : publicLinks;
 

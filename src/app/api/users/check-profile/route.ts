@@ -14,6 +14,7 @@ export async function GET(req: NextRequest) {
       id: true,
       nickname: true,
       ligaId: true,
+      liga: { select: { slug: true } },
       ownedLigas: {
         where: { active: true },
         select: { slug: true },
@@ -75,6 +76,7 @@ export async function GET(req: NextRequest) {
     hasNickname: !!user?.nickname,
     isLigaOwner: (user?.ownedLigas?.length ?? 0) > 0,
     isLigaMember: !!user?.ligaId,
+    ligaSlug: user?.liga?.slug ?? user?.ownedLigas?.[0]?.slug ?? null,
     bracketIncomplete,
   });
 }
