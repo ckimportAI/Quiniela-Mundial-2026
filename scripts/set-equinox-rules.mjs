@@ -14,9 +14,21 @@ const RULES = `⚽ REGLAS — QUINIELA EQUINOX 2026
 3. Empate en eliminatoria: eliges quien pasa por penales (selector aparece automatico).
 4. Goleador del torneo: escribes el nombre del jugador.
 5. Campeon, Subcampeon, Tercer lugar: se calculan automatico segun tu prediccion de la Final y del 3er lugar.
-6. Puedes editar todo cuantas veces quieras hasta el cierre.
+6. Puedes editar tus predicciones cuantas veces quieras hasta el cierre de cada fase.
 
-⏰ CIERRE: 11 de junio 2026 a las 5:00 pm.
+⏰ NO TIENES QUE LLENAR TODA LA QUINIELA DE UNA SOLA VEZ
+
+Puedes ir llenando cada fase antes de que comience. Estos son los cierres por fase (hora Venezuela):
+
+• Fase de Grupos: hasta el miercoles 11 de junio 2026, 3:00 pm
+• Treintaidosavos (R32): hasta el domingo 28 de junio 2026, 3:00 pm
+• Octavos (R16): hasta el sabado 4 de julio 2026, 1:00 pm
+• Cuartos de Final: hasta el jueves 9 de julio 2026, 4:00 pm
+• Semifinales: hasta el martes 14 de julio 2026, 3:00 pm
+• Tercer Lugar: hasta el sabado 18 de julio 2026, 5:00 pm
+• Final: hasta el domingo 19 de julio 2026, 3:00 pm
+
+Una vez comienza una fase, no se puede editar mas las predicciones de esa fase. Las siguientes fases siguen abiertas para edicion.
 
 🎟️ MULTIPLES QUINIELAS: puedes comprar hasta 10 quinielas en una sola compra ($25 c/u). El sistema te crea automaticamente nickname-1, nickname-2, etc. cuando el admin apruebe el pago.
 

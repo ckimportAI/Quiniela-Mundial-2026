@@ -21,6 +21,35 @@ export interface MatchInfo {
   homeTeamId: string | null;
   awayTeamId: string | null;
   group: { name: string } | null;
+  dateTime?: Date;
+}
+
+/**
+ * Returns per-phase deadlines: each phase's earliest match dateTime.
+ * After this moment, predictions for that phase are locked.
+ */
+export function computePhaseDeadlines(
+  matches: MatchInfo[]
+): Record<string, Date> {
+  const out: Record<string, Date> = {};
+  for (const m of matches) {
+    if (!m.dateTime) continue;
+    const existing = out[m.phase];
+    if (!existing || m.dateTime < existing) {
+      out[m.phase] = m.dateTime;
+    }
+  }
+  return out;
+}
+
+export function phaseIsLocked(
+  phase: string,
+  deadlines: Record<string, Date>,
+  now: Date = new Date()
+): boolean {
+  const d = deadlines[phase];
+  if (!d) return false;
+  return now >= d;
 }
 
 export interface PredictionInfo {

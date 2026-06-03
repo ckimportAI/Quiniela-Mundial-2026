@@ -121,6 +121,8 @@ export default function BracketClient({
     thirdPlaceTeamId: string | null;
   }>({ championTeamId: null, runnerUpTeamId: null, thirdPlaceTeamId: null });
   const [completeness, setCompleteness] = useState<CompletenessData | null>(null);
+  const [phaseDeadlines, setPhaseDeadlines] = useState<Record<string, string>>({});
+  const [phaseLocks, setPhaseLocks] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savedAt, setSavedAt] = useState<number | null>(null);
@@ -175,6 +177,8 @@ export default function BracketClient({
         d.derived ?? { championTeamId: null, runnerUpTeamId: null, thirdPlaceTeamId: null }
       );
       setCompleteness(d.completeness ?? null);
+      setPhaseDeadlines(d.phaseDeadlines ?? {});
+      setPhaseLocks(d.phaseLocks ?? {});
     }
     setLoading(false);
   }, [activeQuinielaId]);
@@ -370,7 +374,9 @@ export default function BracketClient({
           matches={matchesByPhase[activePhase] ?? []}
           picks={picks}
           updatePick={updatePick}
-          disabled={!canEdit}
+          disabled={!canEdit || !!phaseLocks[activePhase]}
+          phaseLocked={!!phaseLocks[activePhase]}
+          phaseDeadline={phaseDeadlines[activePhase] ?? null}
         />
       )}
 
@@ -411,12 +417,16 @@ function PhaseSection({
   picks,
   updatePick,
   disabled,
+  phaseLocked,
+  phaseDeadline,
 }: {
   phase: Phase;
   matches: MatchLite[];
   picks: Record<string, MatchPick>;
   updatePick: (id: string, patch: Partial<MatchPick>) => void;
   disabled: boolean;
+  phaseLocked?: boolean;
+  phaseDeadline?: string | null;
 }) {
   const isGroupStage = phase === "GROUP_STAGE";
 
@@ -429,7 +439,43 @@ function PhaseSection({
   }
 
   return (
-    <div className="grid sm:grid-cols-2 gap-3">
+    <div className="space-y-3">
+      {phaseLocked && (
+        <div className="rounded-lg bg-red-50 border-2 border-red-300 p-3 text-sm text-red-900 flex items-start gap-2">
+          <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="font-bold">Fase cerrada</p>
+            <p className="text-xs">
+              Esta fase ya comenzo
+              {phaseDeadline
+                ? ` (${new Date(phaseDeadline).toLocaleString("es-VE", {
+                    day: "numeric",
+                    month: "short",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })})`
+                : ""}
+              . Tus predicciones aqui no pueden modificarse.
+            </p>
+          </div>
+        </div>
+      )}
+      {!phaseLocked && phaseDeadline && (
+        <div className="rounded-lg bg-blue-50 border border-blue-200 p-2 text-xs text-blue-800">
+          ⏰ Cierre de esta fase:{" "}
+          <strong>
+            {new Date(phaseDeadline).toLocaleString("es-VE", {
+              weekday: "long",
+              day: "numeric",
+              month: "long",
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
+          </strong>{" "}
+          (hora Venezuela)
+        </div>
+      )}
+      <div className="grid sm:grid-cols-2 gap-3">
       {matches.map((m) => {
         const pick = picks[m.id] ?? {
           homeScore: "",
@@ -543,6 +589,7 @@ function PhaseSection({
           </Card>
         );
       })}
+      </div>
     </div>
   );
 }

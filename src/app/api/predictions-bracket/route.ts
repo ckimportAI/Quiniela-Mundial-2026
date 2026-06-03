@@ -8,6 +8,8 @@ import {
   slotLabelFor,
   computeAllGroupStandings,
   pickBestThirds,
+  computePhaseDeadlines,
+  phaseIsLocked,
   type MatchInfo,
   type PredictionInfo,
 } from "@/lib/bracket";
@@ -77,6 +79,7 @@ export async function GET(request: NextRequest) {
     id: m.id,
     matchNumber: m.matchNumber,
     phase: m.phase,
+    dateTime: m.dateTime,
     homeTeamId: m.homeTeamId,
     awayTeamId: m.awayTeamId,
     group: m.group,
@@ -200,6 +203,16 @@ export async function GET(request: NextRequest) {
   const topScorerEntry = tournamentPicks.find((t) => t.type === "TOP_SCORER");
   const topScorerFilled = !!(topScorerEntry?.playerName && topScorerEntry.playerName.trim());
 
+  // Once a phase is locked, we don't count its unfilled slots as "still missing"
+  // since the user can no longer fill them. The user "missed" them — separate concept.
+  const phaseDeadlinesEarly = computePhaseDeadlines(matchInfos);
+  const nowEarly = new Date();
+  for (const phase of Object.keys(phaseTotals)) {
+    if (phaseIsLocked(phase, phaseDeadlinesEarly, nowEarly)) {
+      phaseFillable[phase] = phaseFilled[phase] ?? 0;
+    }
+  }
+
   const totalRequired = matches.length + 1; // matches + top scorer
   const totalFilled =
     Object.values(phaseFilled).reduce((a, b) => a + b, 0) + (topScorerFilled ? 1 : 0);
@@ -220,6 +233,14 @@ export async function GET(request: NextRequest) {
     topScorerFilled,
   };
 
+  // Phase deadlines + current lock state
+  const phaseDeadlines = computePhaseDeadlines(matchInfos);
+  const now = new Date();
+  const phaseLocks: Record<string, boolean> = {};
+  for (const phase of Object.keys(phaseDeadlines)) {
+    phaseLocks[phase] = phaseIsLocked(phase, phaseDeadlines, now);
+  }
+
   return NextResponse.json({
     quiniela: { id: quiniela.id, name: quiniela.name },
     matches: enrichedMatches,
@@ -229,6 +250,10 @@ export async function GET(request: NextRequest) {
     standings: standingsArray,
     derived,
     completeness,
+    phaseDeadlines: Object.fromEntries(
+      Object.entries(phaseDeadlines).map(([k, v]) => [k, v.toISOString()])
+    ),
+    phaseLocks,
     canEdit: puedeCrearQuiniela(),
   });
 }
@@ -291,10 +316,29 @@ export async function POST(request: NextRequest) {
       p.awayScore <= 20
   );
 
+  // Per-phase lockdown: drop picks whose phase has already started
+  const allMatchesForLock = await prisma.match.findMany({
+    select: { id: true, phase: true, dateTime: true },
+  });
+  const phaseDeadlinesPost: Record<string, Date> = {};
+  for (const m of allMatchesForLock) {
+    const existing = phaseDeadlinesPost[m.phase];
+    if (!existing || m.dateTime < existing) phaseDeadlinesPost[m.phase] = m.dateTime;
+  }
+  const phaseByMatchId = new Map(allMatchesForLock.map((m) => [m.id, m.phase]));
+  const nowPost = new Date();
+  const editablePicks = validPicks.filter((p) => {
+    const phase = phaseByMatchId.get(p.matchId);
+    if (!phase) return false;
+    const deadline = phaseDeadlinesPost[phase];
+    return !deadline || nowPost < deadline;
+  });
+  const blockedCount = validPicks.length - editablePicks.length;
+
   // Save the raw scores first (no predicted teams yet)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const ops: any[] = [];
-  for (const p of validPicks) {
+  for (const p of editablePicks) {
     // Only persist penalty winner when it's actually a tie
     const isTie = p.homeScore === p.awayScore;
     const penaltyWinner = isTie ? p.winnerOnPenaltiesTeamId ?? null : null;
@@ -451,5 +495,5 @@ export async function POST(request: NextRequest) {
     });
   }
 
-  return NextResponse.json({ success: true });
+  return NextResponse.json({ success: true, blockedCount });
 }
