@@ -46,9 +46,10 @@ export function calculateMatchPoints(
   prediction: { homeScore: number; awayScore: number },
   actual: { homeScore: number; awayScore: number },
   phase: MatchPhase,
-  isWildcard: boolean = false
+  isWildcard: boolean = false,
+  usePhaseMultipliers: boolean = true
 ): number {
-  const multiplier = PHASE_MULTIPLIERS[phase];
+  const multiplier = usePhaseMultipliers ? PHASE_MULTIPLIERS[phase] : 1;
   let basePoints: number = POINTS.WRONG;
 
   const predDiff = prediction.homeScore - prediction.awayScore;

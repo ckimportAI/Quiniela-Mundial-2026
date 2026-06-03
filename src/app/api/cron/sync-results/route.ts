@@ -98,9 +98,24 @@ async function syncOne(fixture: ApiFootballFixture): Promise<
   // Score predictions
   const predictions = await prisma.prediction.findMany({
     where: { matchId: dbMatch.id },
+    include: { quiniela: { select: { ligaId: true } } },
   });
 
+  const cronLigaIds = [
+    ...new Set(predictions.map((p) => p.quiniela.ligaId).filter(Boolean) as string[]),
+  ];
+  const cronLigas = cronLigaIds.length
+    ? await prisma.liga.findMany({
+        where: { id: { in: cronLigaIds } },
+        select: { id: true, usePhaseMultipliers: true },
+      })
+    : [];
+  const cronLigaMultMap = new Map(cronLigas.map((l) => [l.id, l.usePhaseMultipliers]));
+
   for (const p of predictions) {
+    const useMult = p.quiniela.ligaId
+      ? cronLigaMultMap.get(p.quiniela.ligaId) ?? true
+      : true;
     let pointsBlocked = false;
     if (p.predictedHomeTeamId || p.predictedAwayTeamId) {
       const homeOk = p.predictedHomeTeamId
@@ -120,7 +135,8 @@ async function syncOne(fixture: ApiFootballFixture): Promise<
           { homeScore: p.homeScore, awayScore: p.awayScore },
           { homeScore: score.home, awayScore: score.away },
           dbMatch.phase as MatchPhase,
-          p.isWildcard
+          p.isWildcard,
+          useMult
         );
     await prisma.prediction.update({
       where: { id: p.id },

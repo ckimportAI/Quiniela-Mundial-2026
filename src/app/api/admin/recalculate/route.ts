@@ -22,13 +22,23 @@ export async function POST() {
 
   let predictionsUpdated = 0;
 
+  // Pre-load each liga's usePhaseMultipliers flag
+  const ligas = await prisma.liga.findMany({
+    select: { id: true, usePhaseMultipliers: true },
+  });
+  const ligaMultMap = new Map(ligas.map((l) => [l.id, l.usePhaseMultipliers]));
+
   // Recalculate all predictions for finished matches
   for (const match of finishedMatches) {
     const predictions = await prisma.prediction.findMany({
       where: { matchId: match.id },
+      include: { quiniela: { select: { ligaId: true } } },
     });
 
     for (const prediction of predictions) {
+      const useMult = prediction.quiniela.ligaId
+        ? ligaMultMap.get(prediction.quiniela.ligaId) ?? true
+        : true;
       // Bracket picks: if the user predicted specific teams for a KO slot
       // (liga members), their score is only valid when the picked teams
       // match the actual teams. Otherwise 0 points.
@@ -53,7 +63,8 @@ export async function POST() {
             { homeScore: prediction.homeScore, awayScore: prediction.awayScore },
             { homeScore: match.homeScore!, awayScore: match.awayScore! },
             match.phase as MatchPhase,
-            prediction.isWildcard
+            prediction.isWildcard,
+            useMult
           );
 
       await prisma.prediction.update({

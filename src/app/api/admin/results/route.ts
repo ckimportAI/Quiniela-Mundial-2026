@@ -41,9 +41,23 @@ export async function POST(request: NextRequest) {
   // Calculate points for all predictions of this match
   const predictions = await prisma.prediction.findMany({
     where: { matchId },
+    include: { quiniela: { select: { ligaId: true } } },
   });
 
+  // Pre-load liga phase-multiplier flags
+  const ligaIds = [...new Set(predictions.map((p) => p.quiniela.ligaId).filter(Boolean) as string[])];
+  const ligas = ligaIds.length
+    ? await prisma.liga.findMany({
+        where: { id: { in: ligaIds } },
+        select: { id: true, usePhaseMultipliers: true },
+      })
+    : [];
+  const ligaMultMap = new Map(ligas.map((l) => [l.id, l.usePhaseMultipliers]));
+
   for (const prediction of predictions) {
+    const useMult = prediction.quiniela.ligaId
+      ? ligaMultMap.get(prediction.quiniela.ligaId) ?? true
+      : true;
     // Bracket pick guard: liga members predict KO teams in advance; if their
     // predicted teams don't match the actual match teams, score is 0.
     let pointsBlocked = false;
@@ -66,7 +80,8 @@ export async function POST(request: NextRequest) {
           { homeScore: prediction.homeScore, awayScore: prediction.awayScore },
           { homeScore, awayScore },
           match.phase as MatchPhase,
-          prediction.isWildcard
+          prediction.isWildcard,
+          useMult
         );
 
     await prisma.prediction.update({
