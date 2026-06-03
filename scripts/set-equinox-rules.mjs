@@ -18,6 +18,8 @@ const RULES = `⚽ REGLAS — QUINIELA EQUINOX 2026
 
 ⏰ CIERRE: 11 de junio 2026 a las 5:00 pm.
 
+🎟️ MULTIPLES QUINIELAS: puedes comprar hasta 10 quinielas en una sola compra ($25 c/u). El sistema te crea automaticamente nickname-1, nickname-2, etc. cuando el admin apruebe el pago.
+
 🏆 PUNTUACION POR PARTIDO (todas las fases x1)
 
 • Marcador exacto: 5 pts

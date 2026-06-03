@@ -38,6 +38,8 @@ export const paymentReportSchema = z.object({
   generalProofUrl: z.string().max(300).optional(),
   generalMethod: z.string().max(50).optional(),
   generalAmountBs: z.number().positive().optional(),
+  // Liga member multi-purchase: how many quinielas in one payment (1-10)
+  ligaQuantity: z.number().int().min(1).max(10).optional(),
 }).refine((data) => !!data.packageId || !!data.credits || (data.isGift && data.giftQuantity) || data.wantsGeneralOptIn !== undefined, {
   message: "Debes indicar un paquete, creditos, o un regalo",
 });

@@ -120,6 +120,15 @@ function RecargasContent() {
     paymentNotes: string | null;
   } | null>(null);
 
+  // Liga member multi-purchase
+  const [ligaQty, setLigaQty] = useState(1);
+  const LIGA_MAX_QTY = 10;
+  const effectivePriceUsd = pkg
+    ? isLigaMember
+      ? Number(pkg.priceUsd) * ligaQty
+      : Number(pkg.priceUsd)
+    : 0;
+
   // Liga member opt-in to general pool (+$10)
   const OPT_IN_USD = 10;
   const [optInGeneral, setOptInGeneral] = useState(false);
@@ -186,7 +195,7 @@ function RecargasContent() {
             slug: data.ligaSlug,
             ...data.ligaPaymentInfo,
           });
-          // Auto-select the single liga package
+          // Auto-select the single liga package (we'll override priceUsd by qty below)
           if (data.packages?.[0]) {
             setPkg(data.packages[0]);
           }
@@ -321,11 +330,12 @@ function RecargasContent() {
           packageId: isGift || isLigaMember ? undefined : pkg.id,
           isGift: isGift || undefined,
           giftQuantity: isGift ? giftQty : undefined,
-          amount: pkg.priceUsd,
+          amount: effectivePriceUsd,
+          ligaQuantity: isLigaMember ? ligaQty : undefined,
           amountBs:
             ocrData?.amountBs ??
             (isLigaMember && ligaBsRate
-              ? +(pkg.priceUsd * ligaBsRate).toFixed(2)
+              ? +(effectivePriceUsd * ligaBsRate).toFixed(2)
               : undefined),
           paymentDate: paymentDateIso,
           bcvRateUsd: isLigaMember ? undefined : rate?.usd,
@@ -515,11 +525,50 @@ function RecargasContent() {
           </p>
         </CardHeader>
         <CardContent className="space-y-3">
+          {/* Liga member quantity selector */}
+          {isLigaMember && (
+            <div className="rounded-lg border-2 border-dashed border-primary/40 bg-primary/5 p-4 space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Cuantas quinielas quieres?
+              </p>
+              <div className="flex items-center justify-center gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setLigaQty((q) => Math.max(1, q - 1))}
+                  disabled={ligaQty <= 1}
+                  aria-label="Disminuir"
+                >
+                  <span className="text-lg leading-none">−</span>
+                </Button>
+                <div className="text-4xl font-extrabold tabular-nums w-16 text-center">
+                  {ligaQty}
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setLigaQty((q) => Math.min(LIGA_MAX_QTY, q + 1))}
+                  disabled={ligaQty >= LIGA_MAX_QTY}
+                  aria-label="Aumentar"
+                >
+                  <span className="text-lg leading-none">+</span>
+                </Button>
+              </div>
+              <p className="text-center text-[11px] text-muted-foreground">
+                {ligaQty} quiniela{ligaQty > 1 ? "s" : ""} ·{" "}
+                <strong>${effectivePriceUsd}</strong> USD total
+                {ligaQty > 1 && ` (${ligaQty} × $${pkg.priceUsd})`}
+              </p>
+            </div>
+          )}
+
           {/* Bs amount highlight (liga uses owner's rate; general uses Euro BCV) */}
           {(() => {
             // Liga member with custom rate set by owner
             if (isLigaMember && ligaBsRate) {
-              const fullBs = pkg.priceUsd * ligaBsRate;
+              const fullBs = effectivePriceUsd * ligaBsRate;
               return (
                 <div className="rounded-lg border-2 border-primary bg-primary/5 p-4 text-center">
                   <p className="text-xs uppercase tracking-wide text-muted-foreground">
@@ -532,7 +581,7 @@ function RecargasContent() {
                     })}
                   </p>
                   <p className="text-xs text-muted-foreground mt-2">
-                    ${pkg.priceUsd} &times;{" "}
+                    ${effectivePriceUsd} &times;{" "}
                     {ligaBsRate.toLocaleString("es-VE", { maximumFractionDigits: 2 })}{" "}
                     Bs/USD (tasa de {ligaInfo?.name ?? "tu liga"})
                   </p>
@@ -928,7 +977,7 @@ function RecargasContent() {
                       ? ligaBsRate
                       : rate?.eur ?? null;
                   const fullBs =
-                    effectiveRate && pkg ? pkg.priceUsd * effectiveRate : 0;
+                    effectiveRate && pkg ? effectivePriceUsd * effectiveRate : 0;
                   const saldoApplied =
                     isLigaMember || !useSaldo ? 0 : Math.min(saldoBs, fullBs);
                   const expectedBs =

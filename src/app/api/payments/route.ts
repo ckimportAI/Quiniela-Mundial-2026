@@ -139,13 +139,17 @@ export async function POST(request: NextRequest) {
     }
     ligaPriceUsd = Number(liga.priceUsd);
     ligaQuinielasPerPurchase = liga.quinielasPerPurchase;
-    if (Math.abs(parsed.data.amount - ligaPriceUsd) > 0.01) {
+    const ligaQty = Math.min(10, Math.max(1, parsed.data.ligaQuantity ?? 1));
+    const expectedAmount = ligaPriceUsd * ligaQty;
+    if (Math.abs(parsed.data.amount - expectedAmount) > 0.01) {
       return NextResponse.json(
-        { error: `Monto incorrecto. Esperado: $${ligaPriceUsd.toFixed(2)}` },
+        {
+          error: `Monto incorrecto. Esperado: $${expectedAmount.toFixed(2)} (${ligaQty} x $${ligaPriceUsd.toFixed(2)})`,
+        },
         { status: 400 }
       );
     }
-    credits = ligaQuinielasPerPurchase;
+    credits = ligaQuinielasPerPurchase * ligaQty;
   }
 
   // ----------------------------------------------------------
