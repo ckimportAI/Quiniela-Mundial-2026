@@ -58,15 +58,16 @@ export const reviewPaymentSchema = z.object({
 });
 
 export const predictionSchema = z.object({
-  quinielaId: z.string().cuid(),
-  matchId: z.string().cuid(),
+  // Accept any 20-40 char id (CUIDs from Prisma + safe manual IDs)
+  quinielaId: z.string().min(20).max(40),
+  matchId: z.string().min(20).max(40),
   homeScore: z.number().int().min(0).max(99),
   awayScore: z.number().int().min(0).max(99),
   isWildcard: z.boolean().optional().default(false),
 });
 
 export const tournamentPredictionSchema = z.object({
-  quinielaId: z.string().cuid(),
+  quinielaId: z.string().min(20).max(40),
   type: z.enum([
     "CHAMPION",
     "RUNNER_UP",
@@ -75,8 +76,8 @@ export const tournamentPredictionSchema = z.object({
     "GROUP_WINNER",
     "GROUP_RUNNER_UP",
   ]),
-  teamId: z.string().cuid().optional(),
-  groupId: z.string().cuid().optional(),
+  teamId: z.string().min(20).max(40).optional(),
+  groupId: z.string().min(20).max(40).optional(),
   playerName: z.string().min(2).max(100).optional(),
 });
 
