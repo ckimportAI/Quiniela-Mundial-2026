@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { signIn } from "next-auth/react";
 import { Button } from "@/components/ui/button";
@@ -15,13 +16,32 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Eye, EyeOff } from "lucide-react";
 
-export default function RegisterPage() {
+function RegisterForm() {
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [referralCode, setReferralCode] = useState("");
+
+  // Capture ?ref= from URL on mount + remember it across redirects via sessionStorage
+  useEffect(() => {
+    const urlRef = searchParams.get("ref");
+    if (urlRef) {
+      const normalized = urlRef.toUpperCase().trim().slice(0, 40);
+      setReferralCode(normalized);
+      try {
+        sessionStorage.setItem("referralCode", normalized);
+      } catch {}
+      return;
+    }
+    try {
+      const stored = sessionStorage.getItem("referralCode");
+      if (stored) setReferralCode(stored);
+    } catch {}
+  }, [searchParams]);
 
   const passwordsMatch = password === confirmPassword;
   const passwordValid = password.length >= 8;
@@ -40,7 +60,11 @@ export default function RegisterPage() {
       const signupRes = await fetch("/api/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({
+          email,
+          password,
+          referralCode: referralCode || undefined,
+        }),
       });
 
       if (!signupRes.ok) {
@@ -147,6 +171,30 @@ export default function RegisterPage() {
               )}
             </div>
 
+            <div className="space-y-2">
+              <Label htmlFor="referralCode">
+                Codigo de invitacion{" "}
+                <span className="text-xs text-muted-foreground font-normal">
+                  (opcional)
+                </span>
+              </Label>
+              <Input
+                id="referralCode"
+                type="text"
+                value={referralCode}
+                onChange={(e) =>
+                  setReferralCode(e.target.value.toUpperCase().slice(0, 40))
+                }
+                placeholder="Si vienes invitado, ingresa el codigo"
+                maxLength={40}
+              />
+              {referralCode && (
+                <p className="text-xs text-green-700">
+                  Codigo aplicado: <strong>{referralCode}</strong>
+                </p>
+              )}
+            </div>
+
             <Button type="submit" className="w-full" size="lg" disabled={!canSubmit}>
               {loading ? "Creando..." : "Crear cuenta"}
             </Button>
@@ -161,5 +209,13 @@ export default function RegisterPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={<div className="text-center py-12">Cargando...</div>}>
+      <RegisterForm />
+    </Suspense>
   );
 }

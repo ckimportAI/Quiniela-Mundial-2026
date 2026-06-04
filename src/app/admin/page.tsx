@@ -402,6 +402,12 @@ export default async function AdminPage() {
             title="Ligas privadas"
             description="Grupos aislados administrados por terceros."
           />
+          <ActionCard
+            href="/admin/referrals"
+            icon={Users}
+            title="Codigos de Referido"
+            description="Stats de marketing por codigo (?ref=)."
+          />
         </div>
       </div>
 

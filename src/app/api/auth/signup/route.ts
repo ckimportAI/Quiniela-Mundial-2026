@@ -20,6 +20,13 @@ export async function POST(request: NextRequest) {
   const { email, password } = parsed.data;
   const normalizedEmail = email.trim().toLowerCase();
 
+  // Optional referral code (marketing attribution; normalized uppercase)
+  const referralCodeRaw =
+    typeof body.referralCode === "string"
+      ? body.referralCode.trim().toUpperCase().slice(0, 40)
+      : null;
+  const referralCode = referralCodeRaw && referralCodeRaw.length >= 3 ? referralCodeRaw : null;
+
   // Optional liga slug to auto-assign membership during signup
   const ligaSlugRaw = typeof body.ligaSlug === "string" ? body.ligaSlug.trim().toLowerCase() : null;
   let ligaIdToAssign: string | null = null;
@@ -66,6 +73,7 @@ export async function POST(request: NextRequest) {
       passwordHash,
       name: normalizedEmail.split("@")[0],
       ligaId: ligaIdToAssign,
+      referralCode,
     },
     select: { id: true, email: true, ligaId: true },
   });

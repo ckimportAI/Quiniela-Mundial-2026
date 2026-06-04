@@ -38,6 +38,9 @@ model User {
   // Liga membership (private isolated tournament). Once set, locked.
   ligaId  String?
 
+  // Marketing attribution: code captured at signup (from ?ref= URL param)
+  referralCode String? @db.VarChar(40)
+
   // Saldo a favor (Bs) acumulado por sobrepagos
   saldoBs Decimal @default(0) @db.Decimal(14, 2)
   role          Role      @default(PARTICIPANT)
@@ -62,6 +65,7 @@ model User {
   ownedLigas            Liga[]                 @relation("LigaOwner")
 
   @@index([ligaId])
+  @@index([referralCode])
   @@map("users")
 }
 
