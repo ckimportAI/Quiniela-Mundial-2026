@@ -5,6 +5,10 @@ import { prisma } from "@/lib/prisma";
 import { reviewPaymentSchema } from "@/lib/validations";
 import { generateUniqueGiftCode } from "@/lib/gift-code";
 import { FIN_CREAR_QUINIELAS } from "@/lib/constants";
+import {
+  sendPaymentApprovedEmail,
+  sendPaymentRejectedEmail,
+} from "@/lib/email";
 
 const TOLERANCE = 0.02; // 2%
 
@@ -195,6 +199,38 @@ export async function PATCH(
     }
 
     const [updatedPayment] = await prisma.$transaction(ops);
+
+    // Fire-and-forget approval email (does not affect response if it fails)
+    if (!payment.isGeneralOptIn) {
+      const userInfo = await prisma.user.findUnique({
+        where: { id: payment.userId },
+        select: { email: true, name: true, nickname: true },
+      });
+      if (userInfo?.email) {
+        // Resolve the names of the freshly created quinielas
+        const createdQuinielas = await prisma.quiniela.findMany({
+          where: { userId: payment.userId, ligaId: null },
+          orderBy: { createdAt: "desc" },
+          select: { name: true },
+          take: payment.isGift ? 0 : toCreate,
+        });
+        const quinielaNames = payment.isGift
+          ? giftCodes.map((c) => `Codigo de regalo ${c}`)
+          : createdQuinielas.map((q) => q.name);
+
+        sendPaymentApprovedEmail({
+          to: userInfo.email,
+          userName: userInfo.nickname ?? userInfo.name ?? userInfo.email,
+          amountUsd: Number(payment.amount),
+          amountBs: payment.amountBs ? Number(payment.amountBs) : null,
+          paymentReference: payment.reference,
+          paymentMethod: payment.method,
+          quinielaNames,
+          isLiga: false,
+        }).catch((e) => console.error("[email] approved error:", e));
+      }
+    }
+
     return NextResponse.json(updatedPayment);
   }
 
@@ -217,6 +253,23 @@ export async function PATCH(
       },
     }),
   ]);
+
+  // Fire-and-forget rejection email
+  const userInfoRej = await prisma.user.findUnique({
+    where: { id: payment.userId },
+    select: { email: true, name: true, nickname: true },
+  });
+  if (userInfoRej?.email) {
+    sendPaymentRejectedEmail({
+      to: userInfoRej.email,
+      userName: userInfoRej.nickname ?? userInfoRej.name ?? userInfoRej.email,
+      amountUsd: Number(payment.amount),
+      paymentReference: payment.reference,
+      paymentMethod: payment.method,
+      rejectionReason: parsed.data.rejectionNote ?? null,
+      isLiga: false,
+    }).catch((e) => console.error("[email] rejected error:", e));
+  }
 
   return NextResponse.json(updatedPayment[0]);
 }

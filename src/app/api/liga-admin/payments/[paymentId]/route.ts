@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import {
+  sendPaymentApprovedEmail,
+  sendPaymentRejectedEmail,
+} from "@/lib/email";
 
 export async function PATCH(
   request: NextRequest,
@@ -46,6 +50,26 @@ export async function PATCH(
         rejectionNote: typeof body.rejectionNote === "string" ? body.rejectionNote.slice(0, 500) : null,
       },
     });
+
+    // Fire-and-forget rejection email
+    const userInfo = await prisma.user.findUnique({
+      where: { id: payment.userId },
+      select: { email: true, name: true, nickname: true },
+    });
+    if (userInfo?.email) {
+      sendPaymentRejectedEmail({
+        to: userInfo.email,
+        userName: userInfo.nickname ?? userInfo.name ?? userInfo.email,
+        amountUsd: Number(payment.amount),
+        paymentReference: payment.reference,
+        paymentMethod: payment.method,
+        rejectionReason:
+          typeof body.rejectionNote === "string" ? body.rejectionNote.slice(0, 500) : null,
+        isLiga: true,
+        ligaName: liga.name,
+      }).catch((e) => console.error("[email] liga rejected error:", e));
+    }
+
     return NextResponse.json(updated);
   }
 
@@ -103,5 +127,31 @@ export async function PATCH(
   }
 
   const [updatedPayment] = await prisma.$transaction(ops);
+
+  // Fire-and-forget approval email (after quinielas created)
+  const userInfoApr = await prisma.user.findUnique({
+    where: { id: payment.userId },
+    select: { email: true, name: true, nickname: true },
+  });
+  if (userInfoApr?.email) {
+    const createdQuinielas = await prisma.quiniela.findMany({
+      where: { userId: payment.userId, ligaId: liga.id },
+      orderBy: { createdAt: "desc" },
+      select: { name: true },
+      take: toCreate,
+    });
+    sendPaymentApprovedEmail({
+      to: userInfoApr.email,
+      userName: userInfoApr.nickname ?? userInfoApr.name ?? userInfoApr.email,
+      amountUsd: Number(payment.amount),
+      amountBs: payment.amountBs ? Number(payment.amountBs) : null,
+      paymentReference: payment.reference,
+      paymentMethod: payment.method,
+      quinielaNames: createdQuinielas.map((q) => q.name),
+      isLiga: true,
+      ligaName: liga.name,
+    }).catch((e) => console.error("[email] liga approved error:", e));
+  }
+
   return NextResponse.json(updatedPayment);
 }
