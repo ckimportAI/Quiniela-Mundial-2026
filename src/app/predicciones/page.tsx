@@ -43,6 +43,33 @@ export default function PrediccionesPage() {
         </p>
       </div>
 
+      {/* How it works */}
+      <div className="rounded-lg border-2 border-blue-200 bg-blue-50 p-4">
+        <h3 className="text-sm font-bold text-blue-900 mb-1 flex items-center gap-1">
+          📋 Como funciona
+        </h3>
+        <ul className="text-xs text-blue-900 space-y-1 list-disc list-inside">
+          <li>
+            Ahora puedes predecir los <strong>72 partidos de la Fase de
+            Grupos</strong> y las predicciones del torneo (campeon, subcampeon,
+            etc).
+          </li>
+          <li>
+            Cuando termine la fase de grupos y se conozcan los clasificados,{" "}
+            <strong>se desbloquean automaticamente</strong> los partidos de
+            Treintaidosavos (R32) para que los predigas.
+          </li>
+          <li>
+            Lo mismo ocurre con Octavos, Cuartos, Semifinales, Tercer Lugar y la
+            Final: cada fase se habilita cuando termina la anterior.
+          </li>
+          <li>
+            Cada partido se cierra individualmente <strong>5 min antes</strong>{" "}
+            de su inicio. Puedes editar tus predicciones hasta ese momento.
+          </li>
+        </ul>
+      </div>
+
       {/* Quiniela selector */}
       <QuinielaSelector selectedId={quinielaId} onSelect={setQuinielaId} />
 
