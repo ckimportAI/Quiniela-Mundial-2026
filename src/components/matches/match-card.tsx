@@ -1,5 +1,3 @@
-import { format } from "date-fns";
-import { es } from "date-fns/locale";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { TeamFlag } from "@/components/ui/team-flag";
@@ -28,6 +26,23 @@ const statusLabels: Record<string, string> = {
   FINISHED: "Finalizado",
   POSTPONED: "Pospuesto",
 };
+
+const ET_TIME = new Intl.DateTimeFormat("en-US", {
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: false,
+  timeZone: "America/New_York",
+});
+
+const ET_DATE_TIME = new Intl.DateTimeFormat("es-VE", {
+  weekday: "short",
+  day: "numeric",
+  month: "short",
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: false,
+  timeZone: "America/New_York",
+});
 
 interface MatchCardProps {
   match: MatchWithDetails;
@@ -76,7 +91,7 @@ export function MatchCard({ match, compact = false }: MatchCardProps) {
               </span>
             ) : (
               <span className="text-sm text-muted-foreground">
-                {format(new Date(match.dateTime), "HH:mm")}
+                {ET_TIME.format(new Date(match.dateTime))} ET
               </span>
             )}
           </div>
@@ -98,9 +113,7 @@ export function MatchCard({ match, compact = false }: MatchCardProps) {
         {!compact && (
           <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
             <span>
-              {format(new Date(match.dateTime), "EEE d MMM, HH:mm", {
-                locale: es,
-              })}
+              {ET_DATE_TIME.format(new Date(match.dateTime))} ET
             </span>
             {match.venue && (
               <span>
