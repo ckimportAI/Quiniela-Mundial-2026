@@ -31,7 +31,7 @@ const ET_TIME = new Intl.DateTimeFormat("en-US", {
   hour: "2-digit",
   minute: "2-digit",
   hour12: false,
-  timeZone: "America/New_York",
+  timeZone: "America/Caracas",
 });
 
 const ET_DATE_TIME = new Intl.DateTimeFormat("es-VE", {
@@ -41,7 +41,7 @@ const ET_DATE_TIME = new Intl.DateTimeFormat("es-VE", {
   hour: "2-digit",
   minute: "2-digit",
   hour12: false,
-  timeZone: "America/New_York",
+  timeZone: "America/Caracas",
 });
 
 interface MatchCardProps {
@@ -91,8 +91,7 @@ export function MatchCard({ match, compact = false }: MatchCardProps) {
               </span>
             ) : (
               <span className="text-sm text-muted-foreground">
-                {ET_TIME.format(new Date(match.dateTime))} ET
-              </span>
+                {ET_TIME.format(new Date(match.dateTime))}              </span>
             )}
           </div>
 
@@ -113,8 +112,7 @@ export function MatchCard({ match, compact = false }: MatchCardProps) {
         {!compact && (
           <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
             <span>
-              {ET_DATE_TIME.format(new Date(match.dateTime))} ET
-            </span>
+              {ET_DATE_TIME.format(new Date(match.dateTime))}            </span>
             {match.venue && (
               <span>
                 {match.venue.city}
