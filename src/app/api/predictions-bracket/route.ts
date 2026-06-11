@@ -316,21 +316,20 @@ export async function POST(request: NextRequest) {
       p.awayScore <= 20
   );
 
-  // Per-phase lockdown: drop picks whose phase has already started
+  // Per-match lockdown: drop picks whose match kicks off within 5 minutes
+  const PER_MATCH_LOCK_MINUTES = 5;
   const allMatchesForLock = await prisma.match.findMany({
-    select: { id: true, phase: true, dateTime: true },
+    select: { id: true, dateTime: true },
   });
-  const phaseDeadlinesPost: Record<string, Date> = {};
-  for (const m of allMatchesForLock) {
-    const existing = phaseDeadlinesPost[m.phase];
-    if (!existing || m.dateTime < existing) phaseDeadlinesPost[m.phase] = m.dateTime;
-  }
-  const phaseByMatchId = new Map(allMatchesForLock.map((m) => [m.id, m.phase]));
+  const matchDeadlines = new Map(
+    allMatchesForLock.map((m) => [
+      m.id,
+      new Date(m.dateTime.getTime() - PER_MATCH_LOCK_MINUTES * 60 * 1000),
+    ])
+  );
   const nowPost = new Date();
   const editablePicks = validPicks.filter((p) => {
-    const phase = phaseByMatchId.get(p.matchId);
-    if (!phase) return false;
-    const deadline = phaseDeadlinesPost[phase];
+    const deadline = matchDeadlines.get(p.matchId);
     return !deadline || nowPost < deadline;
   });
   const blockedCount = validPicks.length - editablePicks.length;
