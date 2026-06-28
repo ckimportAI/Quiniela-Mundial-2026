@@ -460,21 +460,6 @@ function PhaseSection({
           </div>
         </div>
       )}
-      {!phaseLocked && phaseDeadline && (
-        <div className="rounded-lg bg-blue-50 border border-blue-200 p-2 text-xs text-blue-800">
-          ⏰ Cierre de esta fase:{" "}
-          <strong>
-            {new Date(phaseDeadline).toLocaleString("es-VE", {
-              weekday: "long",
-              day: "numeric",
-              month: "long",
-              hour: "2-digit",
-              minute: "2-digit",
-            })}
-          </strong>{" "}
-          (hora Venezuela)
-        </div>
-      )}
       <div className="grid sm:grid-cols-2 gap-3">
       {matches.map((m) => {
         const pick = picks[m.id] ?? {
