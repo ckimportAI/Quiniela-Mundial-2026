@@ -280,7 +280,7 @@ model Prediction {
   homeScore  Int
   awayScore  Int
   isWildcard Boolean @default(false)
-  points     Int?
+  points     Float?
 
   // For liga-mode bracket predictions where teams of a KO match are TBD:
   // user picks which teams they think will play this slot. NULL for group
@@ -316,7 +316,7 @@ model TournamentPrediction {
   teamId     String?
   groupId    String?
   playerName String?
-  points     Int?
+  points     Float?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -338,14 +338,14 @@ model TournamentPrediction {
 model QuinielaScore {
   id               String @id @default(cuid())
   quinielaId       String @unique
-  totalPoints      Int    @default(0)
+  totalPoints      Float  @default(0)
   exactScores      Int    @default(0)
   correctResults   Int    @default(0)
   partialScores    Int    @default(0)
-  groupPoints      Int    @default(0)
-  knockoutPoints   Int    @default(0)
-  tournamentPoints Int    @default(0)
-  wildcardPoints   Int    @default(0)
+  groupPoints      Float  @default(0)
+  knockoutPoints   Float  @default(0)
+  tournamentPoints Float  @default(0)
+  wildcardPoints   Float  @default(0)
   rank             Int?
 
   quiniela Quiniela @relation(fields: [quinielaId], references: [id], onDelete: Cascade)

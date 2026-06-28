@@ -69,7 +69,9 @@ export function calculateMatchPoints(
     basePoints = POINTS.PARTIAL_SCORE;
   }
 
-  let points = Math.round(basePoints * multiplier);
+  // No rounding: keeps fractional points for KO phases with multipliers
+  // (e.g. ganador correcto in R32 = 3 × 1.5 = 4.5).
+  let points = basePoints * multiplier;
 
   // Wildcard only doubles when the liga (or main) allows wildcards.
   // The caller passes usePhaseMultipliers separately; wildcards are gated
