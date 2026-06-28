@@ -238,12 +238,25 @@ export async function GET(request: NextRequest) {
     topScorerFilled,
   };
 
-  // Phase deadlines + current lock state
+  // Phase deadlines + current lock state.
+  // A KO phase is locked when any of its matches still has unresolved teams
+  // (i.e. the previous phase hasn't finished). GROUP_STAGE is never locked
+  // here (per-match lock still applies).
   const phaseDeadlines = computePhaseDeadlines(matchInfos);
-  const now = new Date();
   const phaseLocks: Record<string, boolean> = {};
+  const matchesByPhase = new Map<string, typeof matches>();
+  for (const m of matches) {
+    if (!matchesByPhase.has(m.phase)) matchesByPhase.set(m.phase, []);
+    matchesByPhase.get(m.phase)!.push(m);
+  }
   for (const phase of Object.keys(phaseDeadlines)) {
-    phaseLocks[phase] = phaseIsLocked(phase, phaseDeadlines, now);
+    if (phase === "GROUP_STAGE") {
+      phaseLocks[phase] = false;
+      continue;
+    }
+    const list = matchesByPhase.get(phase) ?? [];
+    const anyUnresolved = list.some((m) => !m.homeTeamId || !m.awayTeamId);
+    phaseLocks[phase] = anyUnresolved;
   }
 
   return NextResponse.json({

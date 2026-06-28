@@ -444,18 +444,10 @@ function PhaseSection({
         <div className="rounded-lg bg-red-50 border-2 border-red-300 p-3 text-sm text-red-900 flex items-start gap-2">
           <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
           <div>
-            <p className="font-bold">Fase cerrada</p>
+            <p className="font-bold">Fase bloqueada</p>
             <p className="text-xs">
-              Esta fase ya comenzo
-              {phaseDeadline
-                ? ` (${new Date(phaseDeadline).toLocaleString("es-VE", {
-                    day: "numeric",
-                    month: "short",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })})`
-                : ""}
-              . Tus predicciones aqui no pueden modificarse.
+              Los enfrentamientos de esta fase aun no estan definidos. Se
+              habilitara cuando termine la fase anterior.
             </p>
           </div>
         </div>
