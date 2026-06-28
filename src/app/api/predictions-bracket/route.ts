@@ -259,7 +259,10 @@ export async function GET(request: NextRequest) {
       Object.entries(phaseDeadlines).map(([k, v]) => [k, v.toISOString()])
     ),
     phaseLocks,
-    canEdit: puedeCrearQuiniela(),
+    // After the tournament starts, per-match lock takes over. Always allow
+    // opening the editor; the POST handler still rejects edits to locked
+    // matches individually.
+    canEdit: true,
   });
 }
 
