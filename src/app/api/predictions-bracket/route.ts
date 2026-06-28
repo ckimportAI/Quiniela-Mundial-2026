@@ -117,14 +117,19 @@ export async function GET(request: NextRequest) {
   standingsArray.sort((a, b) => a.groupName.localeCompare(b.groupName));
 
   // Enrich each match with resolvedHomeTeamId/awayTeamId + human slot label
+  // Prefer the actual DB-stored teams (set by admin) over the auto-resolver output
   const teamById = new Map(teams.map((t) => [t.id, t]));
   const enrichedMatches = matches.map((m) => {
     const r = resolved[m.matchNumber];
     const slotLabel = slotLabelFor(m.matchNumber);
+    const dbHomeTeam = m.homeTeamId ? teamById.get(m.homeTeamId) ?? null : null;
+    const dbAwayTeam = m.awayTeamId ? teamById.get(m.awayTeamId) ?? null : null;
     return {
       ...m,
-      resolvedHomeTeam: r?.homeTeamId ? teamById.get(r.homeTeamId) ?? null : null,
-      resolvedAwayTeam: r?.awayTeamId ? teamById.get(r.awayTeamId) ?? null : null,
+      resolvedHomeTeam:
+        dbHomeTeam ?? (r?.homeTeamId ? teamById.get(r.homeTeamId) ?? null : null),
+      resolvedAwayTeam:
+        dbAwayTeam ?? (r?.awayTeamId ? teamById.get(r.awayTeamId) ?? null : null),
       slotLabel,
     };
   });
