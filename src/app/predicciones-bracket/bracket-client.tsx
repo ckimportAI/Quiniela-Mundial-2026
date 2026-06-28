@@ -491,10 +491,14 @@ function PhaseSection({
             <CardContent className="p-3 space-y-2">
               <div className="flex items-center justify-between text-xs text-muted-foreground">
                 <span>{groupLabel}</span>
-                <span>{new Date(m.dateTime).toLocaleDateString("es-VE", {
+                <span>{new Intl.DateTimeFormat("es-VE", {
                   day: "numeric",
                   month: "short",
-                })}</span>
+                  hour: "2-digit",
+                  minute: "2-digit",
+                  hour12: false,
+                  timeZone: "America/Caracas",
+                }).format(new Date(m.dateTime))}</span>
               </div>
 
               <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
