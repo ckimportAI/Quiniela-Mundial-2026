@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { QuinielaSelector } from "@/components/quiniela/quiniela-selector";
 import { TeamFlag } from "@/components/ui/team-flag";
+import { KOPhasePredictions } from "@/components/predictions/ko-phase-predictions";
 
 interface GroupData {
   id: string;
@@ -138,6 +139,9 @@ export default function PrediccionesPage() {
               </div>
             )}
           </div>
+
+          {/* KO phases */}
+          <KOPhasePredictions quinielaId={quinielaId} />
         </>
       )}
     </div>
