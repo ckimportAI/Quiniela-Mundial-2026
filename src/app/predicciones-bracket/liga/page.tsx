@@ -70,6 +70,7 @@ export default async function LigaPrediccionesPage({
     homeTeamId: m.homeTeamId,
     awayTeamId: m.awayTeamId,
     dateTime: m.dateTime,
+    group: null,
   }));
   const phaseDeadlines = computePhaseDeadlines(matchInfos);
   const now = new Date();
