@@ -272,12 +272,9 @@ export async function POST(request: NextRequest) {
   if (!session?.user?.id) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
-  if (!puedeCrearQuiniela()) {
-    return NextResponse.json(
-      { error: "El periodo de predicciones ha cerrado" },
-      { status: 403 }
-    );
-  }
+  // No global cutoff: per-match lock (5 min before kickoff) is enforced
+  // further down. Picks for already-locked matches are silently dropped so
+  // the user can still save predictions for upcoming matches.
 
   const body = await request.json();
   const quinielaId = String(body.quinielaId ?? "");
