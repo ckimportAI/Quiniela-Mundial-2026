@@ -10,6 +10,7 @@ import {
   pickBestThirds,
   computePhaseDeadlines,
   phaseIsLocked,
+  PHASE_LOCK_BUFFER_MINUTES,
   type MatchInfo,
   type PredictionInfo,
 } from "@/lib/bracket";
@@ -249,6 +250,7 @@ export async function GET(request: NextRequest) {
     if (!matchesByPhase.has(m.phase)) matchesByPhase.set(m.phase, []);
     matchesByPhase.get(m.phase)!.push(m);
   }
+  const nowGet = new Date();
   for (const phase of Object.keys(phaseDeadlines)) {
     if (phase === "GROUP_STAGE") {
       phaseLocks[phase] = false;
@@ -256,7 +258,11 @@ export async function GET(request: NextRequest) {
     }
     const list = matchesByPhase.get(phase) ?? [];
     const anyUnresolved = list.some((m) => !m.homeTeamId || !m.awayTeamId);
-    phaseLocks[phase] = anyUnresolved;
+    // KO phase is locked when:
+    //   - any of its matches still lacks resolved teams (previous phase incomplete), OR
+    //   - the phase deadline has passed (first match of phase about to start)
+    phaseLocks[phase] =
+      anyUnresolved || phaseIsLocked(phase, phaseDeadlines, nowGet);
   }
 
   return NextResponse.json({
@@ -285,10 +291,6 @@ export async function POST(request: NextRequest) {
   if (!session?.user?.id) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
-  // No global cutoff: per-match lock (5 min before kickoff) is enforced
-  // further down. Picks for already-locked matches are silently dropped so
-  // the user can still save predictions for upcoming matches.
-
   const body = await request.json();
   const quinielaId = String(body.quinielaId ?? "");
   const matchPicks: Array<{
@@ -334,21 +336,41 @@ export async function POST(request: NextRequest) {
       p.awayScore <= 20
   );
 
-  // Per-match lockdown: drop picks whose match kicks off within 5 minutes
+  // Lockdown logic per phase:
+  //   - GROUP_STAGE: per-match lock 5 min before kickoff (unchanged)
+  //   - KO phases: per-phase lock — once the FIRST match of the phase starts
+  //     (minus PHASE_LOCK_BUFFER_MINUTES) all picks for that phase are locked.
+  //     This forces users to commit the entire bracket before any KO match
+  //     reveals results.
   const PER_MATCH_LOCK_MINUTES = 5;
   const allMatchesForLock = await prisma.match.findMany({
-    select: { id: true, dateTime: true },
+    select: { id: true, dateTime: true, phase: true },
   });
-  const matchDeadlines = new Map(
-    allMatchesForLock.map((m) => [
-      m.id,
-      new Date(m.dateTime.getTime() - PER_MATCH_LOCK_MINUTES * 60 * 1000),
-    ])
-  );
+  const matchById = new Map(allMatchesForLock.map((m) => [m.id, m]));
+  // Compute per-phase deadlines (earliest match in phase − buffer)
+  const phaseDeadlinesMap: Record<string, Date> = {};
+  for (const m of allMatchesForLock) {
+    if (m.phase === "GROUP_STAGE") continue;
+    const existing = phaseDeadlinesMap[m.phase];
+    if (!existing || m.dateTime < existing) phaseDeadlinesMap[m.phase] = m.dateTime;
+  }
+  for (const phase of Object.keys(phaseDeadlinesMap)) {
+    phaseDeadlinesMap[phase] = new Date(
+      phaseDeadlinesMap[phase].getTime() - PHASE_LOCK_BUFFER_MINUTES * 60 * 1000
+    );
+  }
   const nowPost = new Date();
   const editablePicks = validPicks.filter((p) => {
-    const deadline = matchDeadlines.get(p.matchId);
-    return !deadline || nowPost < deadline;
+    const m = matchById.get(p.matchId);
+    if (!m) return true;
+    if (m.phase === "GROUP_STAGE") {
+      const deadline = new Date(
+        m.dateTime.getTime() - PER_MATCH_LOCK_MINUTES * 60 * 1000
+      );
+      return nowPost < deadline;
+    }
+    const phaseDeadline = phaseDeadlinesMap[m.phase];
+    return !phaseDeadline || nowPost < phaseDeadline;
   });
   const blockedCount = validPicks.length - editablePicks.length;
 

@@ -444,12 +444,29 @@ function PhaseSection({
         <div className="rounded-lg bg-red-50 border-2 border-red-300 p-3 text-sm text-red-900 flex items-start gap-2">
           <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
           <div>
-            <p className="font-bold">Fase bloqueada</p>
+            <p className="font-bold">Fase cerrada</p>
             <p className="text-xs">
-              Los enfrentamientos de esta fase aun no estan definidos. Se
-              habilitara cuando termine la fase anterior.
+              Esta fase ya esta bloqueada — o los enfrentamientos aun no
+              estan definidos, o el deadline para llenarla ya paso.
             </p>
           </div>
+        </div>
+      )}
+      {!phaseLocked && phaseDeadline && (
+        <div className="rounded-lg bg-amber-50 border border-amber-200 p-2 text-xs text-amber-800">
+          ⚠ Debes completar TODOS los partidos de esta fase antes de{" "}
+          <strong>
+            {new Intl.DateTimeFormat("es-VE", {
+              weekday: "long",
+              day: "numeric",
+              month: "long",
+              hour: "2-digit",
+              minute: "2-digit",
+              hour12: false,
+              timeZone: "America/Caracas",
+            }).format(new Date(phaseDeadline))}
+          </strong>
+          . Después ya no podrás editarlos.
         </div>
       )}
       <div className="grid sm:grid-cols-2 gap-3">
