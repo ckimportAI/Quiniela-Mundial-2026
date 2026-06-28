@@ -75,9 +75,10 @@ export default async function LigaPrediccionesPage({
   const phaseDeadlines = computePhaseDeadlines(matchInfos);
   const now = new Date();
 
-  // Determine if active phase is unlocked-for-viewing (i.e. the phase has
-  // already started — its deadline passed).
-  const phaseStarted = phaseIsLocked(activePhase, phaseDeadlines, now);
+  // HARD-BLOCK: viewing other users' predictions is fully disabled for now.
+  // Will be re-enabled once predictions can be safely shown without copying risk.
+  const phaseStarted = false;
+  void phaseIsLocked; void phaseDeadlines; void now;
 
   const phaseMatches = allMatches.filter((m) => m.phase === activePhase);
   const phaseMatchIds = new Set(phaseMatches.map((m) => m.id));
