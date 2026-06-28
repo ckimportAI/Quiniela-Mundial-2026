@@ -274,19 +274,27 @@ export default function BracketClient({
             predicciones (guarda para refrescar el bracket).
           </p>
         </div>
-        {quinielas.length > 1 && (
-          <select
-            value={activeQuinielaId}
-            onChange={(e) => setActiveQuinielaId(e.target.value)}
-            className="rounded-md border border-input bg-background px-3 py-2 text-sm"
+        <div className="flex items-center gap-2 flex-wrap">
+          <a
+            href="/predicciones-bracket/liga"
+            className="text-sm px-3 py-2 rounded-md border border-input bg-background hover:bg-muted transition-colors"
           >
-            {quinielas.map((q) => (
-              <option key={q.id} value={q.id}>
-                {q.name}
-              </option>
-            ))}
-          </select>
-        )}
+            👥 Ver predicciones de la liga
+          </a>
+          {quinielas.length > 1 && (
+            <select
+              value={activeQuinielaId}
+              onChange={(e) => setActiveQuinielaId(e.target.value)}
+              className="rounded-md border border-input bg-background px-3 py-2 text-sm"
+            >
+              {quinielas.map((q) => (
+                <option key={q.id} value={q.id}>
+                  {q.name}
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
       </div>
 
       {!canEdit && (
