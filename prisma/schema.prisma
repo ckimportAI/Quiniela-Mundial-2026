@@ -246,6 +246,11 @@ model Match {
 
   homeScore   Int?
   awayScore   Int?
+  // Score at end of 90 minutes (before extra time). If null, homeScore/awayScore
+  // is treated as the 90-min score. Ligas with `useRegulationScore=true`
+  // (e.g. Equinox) score against this in KO phases.
+  regulationHomeScore Int?
+  regulationAwayScore Int?
   homePenalty Int?
   awayPenalty Int?
 

@@ -39,7 +39,7 @@ const quinielaLiga = new Map(
 );
 
 const finished = await client.query(
-  `SELECT id, phase, "homeScore", "awayScore" FROM matches WHERE status='FINISHED' AND "homeScore" IS NOT NULL`
+  `SELECT id, phase, "homeScore", "awayScore", "regulationHomeScore", "regulationAwayScore" FROM matches WHERE status='FINISHED' AND "homeScore" IS NOT NULL`
 );
 
 const agg = new Map();
@@ -52,10 +52,16 @@ for (const m of finished.rows) {
   );
 
   for (const p of preds.rows) {
-    const base = basePoints(p.homeScore, p.awayScore, m.homeScore, m.awayScore);
     const ligaId = quinielaLiga.get(p.quinielaId);
     const useMult = ligaId ? ligaMultMap.get(ligaId) !== false : true;
     const wildEnabled = ligaId ? ligaWildMap.get(ligaId) !== false : true;
+    // Equinox (usePhaseMultipliers=false) scores against the 90-min score
+    // for KO matches; General uses the full result (incl. extra time).
+    const useRegulation =
+      !useMult && m.phase !== "GROUP_STAGE" && m.regulationHomeScore != null;
+    const actH = useRegulation ? m.regulationHomeScore : m.homeScore;
+    const actA = useRegulation ? m.regulationAwayScore : m.awayScore;
+    const base = basePoints(p.homeScore, p.awayScore, actH, actA);
     const mult = useMult ? PHASE_MULTIPLIERS[m.phase] ?? 1 : 1;
     let pts = base * mult;
     if (wildEnabled && p.isWildcard && pts > 0) pts *= 2;
