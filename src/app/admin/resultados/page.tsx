@@ -14,6 +14,8 @@ interface Match {
   dateTime: string;
   homeScore: number | null;
   awayScore: number | null;
+  regulationHomeScore: number | null;
+  regulationAwayScore: number | null;
   status: string;
   homeTeam: { name: string; code: string; flag: string } | null;
   awayTeam: { name: string; code: string; flag: string } | null;
@@ -37,6 +39,9 @@ export default function AdminResultadosPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [homeScore, setHomeScore] = useState("");
   const [awayScore, setAwayScore] = useState("");
+  const [regHomeScore, setRegHomeScore] = useState("");
+  const [regAwayScore, setRegAwayScore] = useState("");
+  const [hasExtraTime, setHasExtraTime] = useState(false);
   const [saving, setSaving] = useState(false);
   const [recalculating, setRecalculating] = useState(false);
   const [filter, setFilter] = useState<"all" | "scheduled" | "finished">(
@@ -64,6 +69,11 @@ export default function AdminResultadosPage() {
     setEditingId(match.id);
     setHomeScore(match.homeScore?.toString() ?? "");
     setAwayScore(match.awayScore?.toString() ?? "");
+    setRegHomeScore(match.regulationHomeScore?.toString() ?? "");
+    setRegAwayScore(match.regulationAwayScore?.toString() ?? "");
+    setHasExtraTime(
+      match.regulationHomeScore != null || match.regulationAwayScore != null
+    );
   };
 
   const handleSave = async (matchId: string) => {
@@ -71,12 +81,29 @@ export default function AdminResultadosPage() {
     const a = parseInt(awayScore);
     if (isNaN(h) || isNaN(a) || h < 0 || a < 0) return;
 
+    let regH: number | null = null;
+    let regA: number | null = null;
+    if (hasExtraTime) {
+      regH = parseInt(regHomeScore);
+      regA = parseInt(regAwayScore);
+      if (isNaN(regH) || isNaN(regA) || regH < 0 || regA < 0) {
+        alert("Marcador de 90 min invalido");
+        return;
+      }
+    }
+
     setSaving(true);
     try {
       const res = await fetch("/api/admin/results", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ matchId, homeScore: h, awayScore: a }),
+        body: JSON.stringify({
+          matchId,
+          homeScore: h,
+          awayScore: a,
+          regulationHomeScore: regH,
+          regulationAwayScore: regA,
+        }),
       });
 
       if (!res.ok) {
@@ -93,12 +120,15 @@ export default function AdminResultadosPage() {
                 ...m,
                 homeScore: h,
                 awayScore: a,
+                regulationHomeScore: regH,
+                regulationAwayScore: regA,
                 status: "FINISHED",
               }
             : m
         )
       );
       setEditingId(null);
+      setHasExtraTime(false);
       alert(`Resultado guardado. ${data.predictionsUpdated} predicciones actualizadas.`);
     } finally {
       setSaving(false);
@@ -213,47 +243,99 @@ export default function AdminResultadosPage() {
                 </div>
 
                 {/* Score / Edit */}
-                <div className="flex items-center gap-2 min-w-[180px] justify-end">
+                <div className="flex flex-col items-end gap-2 min-w-[180px]">
                   {editingId === match.id ? (
                     <>
-                      <Input
-                        type="number"
-                        min={0}
-                        value={homeScore}
-                        onChange={(e) => setHomeScore(e.target.value)}
-                        className="w-14 h-8 text-center text-sm"
-                      />
-                      <span>-</span>
-                      <Input
-                        type="number"
-                        min={0}
-                        value={awayScore}
-                        onChange={(e) => setAwayScore(e.target.value)}
-                        className="w-14 h-8 text-center text-sm"
-                      />
-                      <Button
-                        size="sm"
-                        className="h-8"
-                        disabled={saving}
-                        onClick={() => handleSave(match.id)}
-                      >
-                        {saving ? "..." : "OK"}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-8"
-                        onClick={() => setEditingId(null)}
-                      >
-                        X
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground w-16 text-right">
+                          Final
+                        </span>
+                        <Input
+                          type="number"
+                          min={0}
+                          value={homeScore}
+                          onChange={(e) => setHomeScore(e.target.value)}
+                          className="w-14 h-8 text-center text-sm"
+                        />
+                        <span>-</span>
+                        <Input
+                          type="number"
+                          min={0}
+                          value={awayScore}
+                          onChange={(e) => setAwayScore(e.target.value)}
+                          className="w-14 h-8 text-center text-sm"
+                        />
+                      </div>
+                      {match.phase !== "GROUP_STAGE" && (
+                        <div className="flex items-center gap-2">
+                          <label className="text-xs text-muted-foreground flex items-center gap-1">
+                            <input
+                              type="checkbox"
+                              checked={hasExtraTime}
+                              onChange={(e) =>
+                                setHasExtraTime(e.target.checked)
+                              }
+                            />
+                            Fue a tiempo extra
+                          </label>
+                        </div>
+                      )}
+                      {hasExtraTime && match.phase !== "GROUP_STAGE" && (
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-muted-foreground w-16 text-right">
+                            90 min
+                          </span>
+                          <Input
+                            type="number"
+                            min={0}
+                            value={regHomeScore}
+                            onChange={(e) => setRegHomeScore(e.target.value)}
+                            className="w-14 h-8 text-center text-sm"
+                          />
+                          <span>-</span>
+                          <Input
+                            type="number"
+                            min={0}
+                            value={regAwayScore}
+                            onChange={(e) => setRegAwayScore(e.target.value)}
+                            className="w-14 h-8 text-center text-sm"
+                          />
+                        </div>
+                      )}
+                      <div className="flex items-center gap-2">
+                        <Button
+                          size="sm"
+                          className="h-8"
+                          disabled={saving}
+                          onClick={() => handleSave(match.id)}
+                        >
+                          {saving ? "..." : "OK"}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-8"
+                          onClick={() => setEditingId(null)}
+                        >
+                          X
+                        </Button>
+                      </div>
                     </>
                   ) : (
-                    <>
+                    <div className="flex items-center gap-2">
                       {match.status === "FINISHED" ? (
-                        <Badge variant="secondary">
-                          {match.homeScore} - {match.awayScore}
-                        </Badge>
+                        <div className="flex flex-col items-end gap-0.5">
+                          <Badge variant="secondary">
+                            {match.homeScore} - {match.awayScore}
+                          </Badge>
+                          {match.regulationHomeScore != null &&
+                            match.regulationAwayScore != null && (
+                              <span className="text-[10px] text-muted-foreground">
+                                90&apos;: {match.regulationHomeScore}-
+                                {match.regulationAwayScore}
+                              </span>
+                            )}
+                        </div>
                       ) : (
                         <Badge variant="outline">Pendiente</Badge>
                       )}
@@ -265,7 +347,7 @@ export default function AdminResultadosPage() {
                       >
                         {match.status === "FINISHED" ? "Editar" : "Resultado"}
                       </Button>
-                    </>
+                    </div>
                   )}
                 </div>
               </div>

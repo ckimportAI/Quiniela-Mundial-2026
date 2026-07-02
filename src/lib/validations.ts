@@ -85,6 +85,8 @@ export const matchResultSchema = z.object({
   matchId: z.string().cuid(),
   homeScore: z.number().int().min(0),
   awayScore: z.number().int().min(0),
+  regulationHomeScore: z.number().int().min(0).nullable().optional(),
+  regulationAwayScore: z.number().int().min(0).nullable().optional(),
   homePenalty: z.number().int().min(0).optional(),
   awayPenalty: z.number().int().min(0).optional(),
 });

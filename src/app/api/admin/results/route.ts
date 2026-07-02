@@ -22,15 +22,26 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { matchId, homeScore, awayScore, homePenalty, awayPenalty } =
-    parsed.data;
+  const {
+    matchId,
+    homeScore,
+    awayScore,
+    regulationHomeScore,
+    regulationAwayScore,
+    homePenalty,
+    awayPenalty,
+  } = parsed.data;
 
-  // Update match result
+  // Update match result. regulation* holds the 90-min score for KO matches
+  // decided in extra time; Equinox (usePhaseMultipliers=false) scores against
+  // it instead of the final score.
   const match = await prisma.match.update({
     where: { id: matchId },
     data: {
       homeScore,
       awayScore,
+      regulationHomeScore: regulationHomeScore ?? null,
+      regulationAwayScore: regulationAwayScore ?? null,
       homePenalty: homePenalty ?? null,
       awayPenalty: awayPenalty ?? null,
       status: "FINISHED",
@@ -79,11 +90,20 @@ export async function POST(request: NextRequest) {
       if (!swappedOk && !(homeOk && awayOk)) pointsBlocked = true;
     }
 
+    // Equinox (useMult=false) scores KO phases against the 90-min score.
+    const useRegulation =
+      !useMult &&
+      match.phase !== "GROUP_STAGE" &&
+      regulationHomeScore != null &&
+      regulationAwayScore != null;
+    const actualHome = useRegulation ? regulationHomeScore : homeScore;
+    const actualAway = useRegulation ? regulationAwayScore : awayScore;
+
     const points = pointsBlocked
       ? 0
       : calculateMatchPoints(
           { homeScore: prediction.homeScore, awayScore: prediction.awayScore },
-          { homeScore, awayScore },
+          { homeScore: actualHome!, awayScore: actualAway! },
           match.phase as MatchPhase,
           effectiveWildcard,
           useMult
