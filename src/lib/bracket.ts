@@ -25,7 +25,7 @@ export interface MatchInfo {
 }
 
 // Minutes to subtract from each phase's first match (buffer before lock).
-export const PHASE_LOCK_BUFFER_MINUTES = 15;
+export const PHASE_LOCK_BUFFER_MINUTES = 5;
 
 /**
  * Returns per-phase deadlines: each phase's earliest match dateTime
