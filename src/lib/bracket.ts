@@ -60,6 +60,35 @@ export function phaseIsLocked(
   return now >= d;
 }
 
+/**
+ * Returns per-phase first-match dateTime (no buffer). Used to gate
+ * visibility of other players' predictions in Equinox — they only
+ * become visible AFTER the phase's first match actually kicks off.
+ */
+export function computePhaseStartTimes(
+  matches: MatchInfo[]
+): Record<string, Date> {
+  const earliestByPhase: Record<string, Date> = {};
+  for (const m of matches) {
+    if (!m.dateTime) continue;
+    const existing = earliestByPhase[m.phase];
+    if (!existing || m.dateTime < existing) {
+      earliestByPhase[m.phase] = m.dateTime;
+    }
+  }
+  return earliestByPhase;
+}
+
+export function phaseHasStarted(
+  phase: string,
+  startTimes: Record<string, Date>,
+  now: Date = new Date()
+): boolean {
+  const t = startTimes[phase];
+  if (!t) return false;
+  return now >= t;
+}
+
 export interface PredictionInfo {
   matchId: string;
   homeScore: number;

@@ -4,8 +4,8 @@ import Link from "next/link";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import {
-  computePhaseDeadlines,
-  phaseIsLocked,
+  computePhaseStartTimes,
+  phaseHasStarted,
   type MatchInfo,
 } from "@/lib/bracket";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -72,12 +72,12 @@ export default async function LigaPrediccionesPage({
     dateTime: m.dateTime,
     group: null,
   }));
-  const phaseDeadlines = computePhaseDeadlines(matchInfos);
+  const phaseStartTimes = computePhaseStartTimes(matchInfos);
   const now = new Date();
 
-  // Show other users' predictions once the phase deadline has passed
-  // (i.e. the phase has effectively started — no copying risk left).
-  const phaseStarted = phaseIsLocked(activePhase, phaseDeadlines, now);
+  // Only reveal other players' predictions AFTER the phase's first match
+  // has kicked off (Equinox rule — no copying risk once the ball is rolling).
+  const phaseStarted = phaseHasStarted(activePhase, phaseStartTimes, now);
 
   const phaseMatches = allMatches.filter((m) => m.phase === activePhase);
   const phaseMatchIds = new Set(phaseMatches.map((m) => m.id));
