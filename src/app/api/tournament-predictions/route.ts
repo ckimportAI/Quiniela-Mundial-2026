@@ -3,7 +3,6 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { tournamentPredictionSchema } from "@/lib/validations";
-import { TOURNAMENT_PREDICTIONS_DEADLINE } from "@/lib/constants";
 
 export async function GET(request: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -43,12 +42,22 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
 
-  // Check deadline
-  if (new Date() >= TOURNAMENT_PREDICTIONS_DEADLINE) {
-    return NextResponse.json(
-      { error: "El plazo para predicciones de torneo ha expirado" },
-      { status: 403 }
-    );
+  // Deadline: 5 minutes before the first Quarter-Finals match.
+  // Once QF kicks off, the champion/subchampion/3rd race is effectively decided
+  // so we lock tournament predictions there.
+  const firstQF = await prisma.match.findFirst({
+    where: { phase: "QUARTER_FINALS" },
+    orderBy: { dateTime: "asc" },
+    select: { dateTime: true },
+  });
+  if (firstQF?.dateTime) {
+    const deadline = new Date(firstQF.dateTime.getTime() - 5 * 60 * 1000);
+    if (new Date() >= deadline) {
+      return NextResponse.json(
+        { error: "El plazo para predicciones de torneo ha expirado" },
+        { status: 403 }
+      );
+    }
   }
 
   const body = await request.json();

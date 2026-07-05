@@ -187,8 +187,8 @@ function TorneoPredictionsContent() {
           Predicciones de Torneo
         </h1>
         <p className="text-muted-foreground">
-          Predice campeon, subcampeon, tercer lugar y goleador antes de que
-          termine la fase de grupos.
+          Predice campeon, subcampeon, tercer lugar y goleador. Puedes editar
+          hasta 5 minutos antes del primer partido de Cuartos de Final.
         </p>
       </div>
 
