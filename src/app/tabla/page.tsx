@@ -42,8 +42,11 @@ export default async function LeaderboardPage() {
   }
 
   const where = viewingLigaId
-    ? { ligaId: viewingLigaId }
-    : { OR: [{ ligaId: null }, { alsoInGeneral: true }] };
+    ? { ligaId: viewingLigaId, hiddenFromLeaderboard: false }
+    : {
+        hiddenFromLeaderboard: false,
+        OR: [{ ligaId: null }, { alsoInGeneral: true }],
+      };
 
   const quinielas = await prisma.quiniela.findMany({
     where,

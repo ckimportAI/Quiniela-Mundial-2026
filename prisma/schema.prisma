@@ -169,6 +169,9 @@ model Quiniela {
   // (only valid when ligaId is set; liga member paid extra to opt-in)
   alsoInGeneral   Boolean  @default(false)
   isTest      Boolean  @default(false)
+  // When true, this quiniela is hidden from public leaderboard/tabla and
+  // does NOT compete for prizes. Predictions and history are preserved.
+  hiddenFromLeaderboard Boolean @default(false)
   isAi        Boolean  @default(false)
   aiProvider  String?  @db.VarChar(30)
   aiProofUrl  String?  @db.VarChar(300)

@@ -31,11 +31,14 @@ export async function GET(request: NextRequest) {
   }
 
   if (viewingLigaId) {
-    scopedWhere = { quiniela: { is: { ligaId: viewingLigaId } } };
+    scopedWhere = {
+      quiniela: { is: { ligaId: viewingLigaId, hiddenFromLeaderboard: false } },
+    };
   } else {
     scopedWhere = {
       quiniela: {
         is: {
+          hiddenFromLeaderboard: false,
           OR: [{ ligaId: null }, { alsoInGeneral: true }],
         },
       },
