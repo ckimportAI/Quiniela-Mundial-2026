@@ -205,6 +205,26 @@ export default function BracketClient({
     setPicks((cur) => ({ ...cur, [matchId]: { ...cur[matchId], ...patch } }));
 
   const handleSave = async () => {
+    // Client-side guard: KO ties must have a penalty winner.
+    const missingPenaltyMatches: number[] = [];
+    for (const m of matches) {
+      if (m.phase === "GROUP_STAGE") continue;
+      const p = picks[m.id];
+      if (!p) continue;
+      if (p.homeScore === "" || p.awayScore === "") continue;
+      if (p.homeScore !== p.awayScore) continue;
+      if (!m.resolvedHomeTeam || !m.resolvedAwayTeam) continue;
+      if (!p.winnerOnPenaltiesTeamId) {
+        missingPenaltyMatches.push(m.matchNumber);
+      }
+    }
+    if (missingPenaltyMatches.length > 0) {
+      alert(
+        `Debes elegir el equipo que pasa por penales en el/los partido(s): ${missingPenaltyMatches.join(", ")}`
+      );
+      return;
+    }
+
     setSaving(true);
     const matchPicks = Object.entries(picks)
       .map(([matchId, p]) => ({
@@ -570,7 +590,13 @@ function PhaseSection({
                 m.resolvedHomeTeam &&
                 m.resolvedAwayTeam && (
                   <div className="pt-2 border-t flex items-center gap-2 text-xs">
-                    <span className="text-muted-foreground whitespace-nowrap">
+                    <span
+                      className={`whitespace-nowrap font-medium ${
+                        !pick.winnerOnPenaltiesTeamId
+                          ? "text-red-700"
+                          : "text-muted-foreground"
+                      }`}
+                    >
                       Pasa por penales:
                     </span>
                     <select
@@ -579,7 +605,11 @@ function PhaseSection({
                         updatePick(m.id, { winnerOnPenaltiesTeamId: e.target.value })
                       }
                       disabled={disabled}
-                      className="flex-1 rounded-md border border-input bg-background px-2 py-1 text-xs"
+                      className={`flex-1 rounded-md border bg-background px-2 py-1 text-xs ${
+                        !pick.winnerOnPenaltiesTeamId
+                          ? "border-red-500 ring-1 ring-red-200"
+                          : "border-input"
+                      }`}
                     >
                       <option value="">-- elegir --</option>
                       <option value={m.resolvedHomeTeam.id}>

@@ -374,6 +374,34 @@ export async function POST(request: NextRequest) {
   });
   const blockedCount = validPicks.length - editablePicks.length;
 
+  // Hard-block: a KO pick with a tied score MUST specify who advances on penalties.
+  // The bracket propagation and Champion/Runner-up derivation depend on it.
+  const tieWithoutWinner: number[] = [];
+  for (const p of editablePicks) {
+    const m = matchById.get(p.matchId);
+    if (!m || m.phase === "GROUP_STAGE") continue;
+    if (p.homeScore === p.awayScore && !p.winnerOnPenaltiesTeamId) {
+      const info = allMatchesForLock.find((x) => x.id === p.matchId);
+      // matchNumber isn't in select above; refetch quickly for the error msg
+      const mFull = await prisma.match.findUnique({
+        where: { id: p.matchId },
+        select: { matchNumber: true },
+      });
+      if (mFull) tieWithoutWinner.push(mFull.matchNumber);
+      void info;
+    }
+  }
+  if (tieWithoutWinner.length > 0) {
+    return NextResponse.json(
+      {
+        error:
+          "En los partidos de eliminación con empate debes elegir el equipo que pasa por penales.",
+        matchNumbers: tieWithoutWinner,
+      },
+      { status: 400 }
+    );
+  }
+
   // Save the raw scores first (no predicted teams yet)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const ops: any[] = [];
