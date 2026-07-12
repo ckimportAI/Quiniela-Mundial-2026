@@ -245,10 +245,10 @@ export async function GET(request: NextRequest) {
   // here (per-match lock still applies).
   const phaseDeadlines = computePhaseDeadlines(matchInfos);
   const phaseLocks: Record<string, boolean> = {};
-  const matchesByPhase = new Map<string, typeof matches>();
-  for (const m of matches) {
-    if (!matchesByPhase.has(m.phase)) matchesByPhase.set(m.phase, []);
-    matchesByPhase.get(m.phase)!.push(m);
+  const enrichedByPhase = new Map<string, typeof enrichedMatches>();
+  for (const m of enrichedMatches) {
+    if (!enrichedByPhase.has(m.phase)) enrichedByPhase.set(m.phase, []);
+    enrichedByPhase.get(m.phase)!.push(m);
   }
   const nowGet = new Date();
   for (const phase of Object.keys(phaseDeadlines)) {
@@ -256,8 +256,13 @@ export async function GET(request: NextRequest) {
       phaseLocks[phase] = false;
       continue;
     }
-    const list = matchesByPhase.get(phase) ?? [];
-    const anyUnresolved = list.some((m) => !m.homeTeamId || !m.awayTeamId);
+    const list = enrichedByPhase.get(phase) ?? [];
+    // Consider a match "resolved" if EITHER the DB has teams (admin set them
+    // when previous phase finished) OR the bracket resolver propagated teams
+    // from the user's picks (e.g. Final teams from user's SF winners).
+    const anyUnresolved = list.some(
+      (m) => !m.resolvedHomeTeam || !m.resolvedAwayTeam
+    );
     // KO phase is locked when:
     //   - any of its matches still lacks resolved teams (previous phase incomplete), OR
     //   - the phase deadline has passed (first match of phase about to start)
