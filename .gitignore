@@ -45,3 +45,9 @@ next-env.d.ts
 /uploads/
 Inventario_Equipos_Red.xlsx
 ~$*.xlsx
+
+# Personal/local files (not part of the project)
+Factura_*.xlsx
+Lista_Invitados_*.pdf
+Lista_Invitados_*.xlsx
+_chk.txt
