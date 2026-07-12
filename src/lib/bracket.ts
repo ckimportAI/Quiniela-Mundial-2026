@@ -357,18 +357,34 @@ export function resolveBracket(
     return null;
   };
 
-  const matchWinner = (matchNumber: number): string | null => {
+  // Look up the actual DB teams for a match by matchNumber (admin-published
+  // once previous round finishes). Prefer these over the auto-propagated
+  // slot so downstream resolution uses the real matchup, not what the
+  // user predicted for prior rounds.
+  const matchByNumber = new Map(matches.map((m) => [m.matchNumber, m]));
+  const teamsForMatch = (
+    matchNumber: number
+  ): { home: string | null; away: string | null } => {
+    const m = matchByNumber.get(matchNumber);
     const slot = resolved[matchNumber];
-    if (!slot || !slot.homeTeamId || !slot.awayTeamId) return null;
+    return {
+      home: m?.homeTeamId ?? slot?.homeTeamId ?? null,
+      away: m?.awayTeamId ?? slot?.awayTeamId ?? null,
+    };
+  };
+
+  const matchWinner = (matchNumber: number): string | null => {
+    const { home, away } = teamsForMatch(matchNumber);
+    if (!home || !away) return null;
     const pred = predByMatchNumber.get(matchNumber);
     if (!pred) return null;
-    if (pred.homeScore > pred.awayScore) return slot.homeTeamId;
-    if (pred.awayScore > pred.homeScore) return slot.awayTeamId;
+    if (pred.homeScore > pred.awayScore) return home;
+    if (pred.awayScore > pred.homeScore) return away;
     // Tie -> use penalty winner if set and valid
     if (
       pred.winnerOnPenaltiesTeamId &&
-      (pred.winnerOnPenaltiesTeamId === slot.homeTeamId ||
-        pred.winnerOnPenaltiesTeamId === slot.awayTeamId)
+      (pred.winnerOnPenaltiesTeamId === home ||
+        pred.winnerOnPenaltiesTeamId === away)
     ) {
       return pred.winnerOnPenaltiesTeamId;
     }
@@ -376,19 +392,15 @@ export function resolveBracket(
   };
 
   const matchLoser = (matchNumber: number): string | null => {
-    const slot = resolved[matchNumber];
-    if (!slot || !slot.homeTeamId || !slot.awayTeamId) return null;
+    const { home, away } = teamsForMatch(matchNumber);
+    if (!home || !away) return null;
     const pred = predByMatchNumber.get(matchNumber);
     if (!pred) return null;
-    if (pred.homeScore > pred.awayScore) return slot.awayTeamId;
-    if (pred.awayScore > pred.homeScore) return slot.homeTeamId;
+    if (pred.homeScore > pred.awayScore) return away;
+    if (pred.awayScore > pred.homeScore) return home;
     // Tie -> loser = the one NOT picked on penalties
-    if (
-      pred.winnerOnPenaltiesTeamId === slot.homeTeamId
-    ) return slot.awayTeamId;
-    if (
-      pred.winnerOnPenaltiesTeamId === slot.awayTeamId
-    ) return slot.homeTeamId;
+    if (pred.winnerOnPenaltiesTeamId === home) return away;
+    if (pred.winnerOnPenaltiesTeamId === away) return home;
     return null;
   };
 
