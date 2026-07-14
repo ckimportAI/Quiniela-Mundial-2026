@@ -206,9 +206,13 @@ export default function BracketClient({
 
   const handleSave = async () => {
     // Client-side guard: KO ties must have a penalty winner.
+    // Only validate picks in phases that are still editable — an already-locked
+    // phase (past deadline) can't be edited anyway, and its picks may have been
+    // saved before this rule was enforced.
     const missingPenaltyMatches: number[] = [];
     for (const m of matches) {
       if (m.phase === "GROUP_STAGE") continue;
+      if (phaseLocks[m.phase]) continue;
       const p = picks[m.id];
       if (!p) continue;
       if (p.homeScore === "" || p.awayScore === "") continue;
