@@ -94,6 +94,13 @@ for (const m of finished.rows) {
   }
 }
 
+// Aggregate tournament prediction points per quiniela (Champion/Sub/3rd/TopScorer)
+const tourneyRows = await client.query(
+  `SELECT "quinielaId", COALESCE(SUM(points), 0) as pts
+   FROM tournament_predictions WHERE points IS NOT NULL GROUP BY "quinielaId"`
+);
+const tourneyByQ = new Map(tourneyRows.rows.map((r) => [r.quinielaId, Number(r.pts)]));
+
 const allQ = await client.query(`SELECT id FROM quinielas`);
 let updated = 0;
 for (const q of allQ.rows) {
@@ -106,12 +113,20 @@ for (const q of allQ.rows) {
     ko: 0,
     wildcard: 0,
   };
+  // Tournament predictions (Champion/Sub/3rd/Top Scorer) only count for
+  // ligas that use phase multipliers (i.e. General/main pool). Equinox
+  // disabled them per its rules — don't add tourneyPts to their total.
+  const ligaIdForQ = quinielaLiga.get(q.id);
+  const useMultForQ = ligaIdForQ ? ligaMultMap.get(ligaIdForQ) !== false : true;
+  const rawTourneyPts = tourneyByQ.get(q.id) || 0;
+  const tourneyPts = useMultForQ ? rawTourneyPts : 0;
+  const grandTotal = a.total + tourneyPts;
   await client.query(
     `UPDATE quiniela_scores SET
        "totalPoints"=$1, "exactScores"=$2, "correctResults"=$3, "partialScores"=$4,
-       "groupPoints"=$5, "knockoutPoints"=$6, "wildcardPoints"=$7, "updatedAt"=NOW()
-     WHERE "quinielaId"=$8`,
-    [a.total, a.exact, a.ganador, a.parcial, a.group, a.ko, a.wildcard, q.id]
+       "groupPoints"=$5, "knockoutPoints"=$6, "wildcardPoints"=$7, "tournamentPoints"=$8, "updatedAt"=NOW()
+     WHERE "quinielaId"=$9`,
+    [grandTotal, a.exact, a.ganador, a.parcial, a.group, a.ko, a.wildcard, tourneyPts, q.id]
   );
   updated++;
 }
